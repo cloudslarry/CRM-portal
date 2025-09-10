@@ -3,6 +3,7 @@ const ExtractJwt = require("passport-jwt").ExtractJwt;
 const Faculty = require("../models/Faculty");
 const Student = require("../models/Student");
 const Admin = require("../models/Admin");
+const Applicant = require("../models/Applicant");
 
 const keys = require("./key");
 
@@ -16,6 +17,7 @@ module.exports = (passport) => {
       const faculty = await Faculty.findById(jwt_payload.id);
       const student = await Student.findById(jwt_payload.id);
       const admin = await Admin.findById(jwt_payload.id);
+      const applicant = await Applicant.findById(jwt_payload.id);
 
       if (faculty) {
         return done(null, faculty);
@@ -23,6 +25,8 @@ module.exports = (passport) => {
         return done(null, student);
       } else if (admin) {
         return done(null, admin);
+      } else if (applicant) {
+        return done(null, applicant);
       } else {
         console.log("Passport Error");
       }

@@ -1,6 +1,6 @@
 import api from "../../config/api";
 import authToken from "../utils/authToken";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import {
   SET_STUDENT,
   SET_ERRORS_HELPER,
@@ -67,6 +67,7 @@ const previousChatsHelper = (data) => {
 };
 
 const getAllSubjectsHelper = (data) => {
+  console.log('StudentAction: Dispatching subjects data:', data);
   return {
     type: "GET_ALL_SUBJECTS",
     payload: data,
@@ -81,6 +82,7 @@ const fetchAttendenceHelper = (data) => {
 };
 
 const getMarksHelper = (data) => {
+  console.log('StudentAction: Dispatching marks data:', data);
   return {
     type: "GET_MARKS",
     payload: data,
@@ -99,12 +101,12 @@ export const studentLogin = (studentCredentials) => {
       localStorage.setItem("studentToken", token);
       authToken(token);
 
-      const decoded = jwt_decode(token);
+      const decoded = jwtDecode(token);
       dispatch(setStudent(decoded));
     } catch (err) {
       dispatch({
         type: SET_ERRORS_HELPER,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -121,7 +123,7 @@ export const studentUpdatePassword = (passwordData) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS_HELPER,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -161,7 +163,7 @@ export const getOTPStudent = (email) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -175,7 +177,7 @@ export const submitOTPStudent = (credentials) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -265,18 +267,21 @@ export const studentUpdate = (updatedData) => {
 export const getAllSubjects = () => {
   return async (dispatch) => {
     try {
+      console.log('StudentAction: Fetching all subjects...');
       const { data } = await api.get("/api/student/getAllSubjects");
+      console.log('StudentAction: Subjects API response:', data);
       dispatch(getAllSubjectsHelper(data.result));
     } catch (err) {
-      console.log("Error in getting subjects", err.message);
+      console.error("Error in getting subjects", err.message);
     }
   };
 };
 
-export const fetchAttendance = () => {
+export const fetchAttendance = (date) => {
   return async (dispatch) => {
     try {
-      const { data } = await api.get("/api/student/checkAttendance");
+      const endpoint = date ? `/api/student/checkAttendance?date=${encodeURIComponent(date)}` : "/api/student/checkAttendance";
+      const { data } = await api.get(endpoint);
       dispatch(fetchAttendenceHelper(data.result));
     } catch (err) {
       console.log("Error in fetching attendance", err.message);
@@ -287,10 +292,19 @@ export const fetchAttendance = () => {
 export const getMarks = () => {
   return async (dispatch) => {
     try {
+      console.log('StudentAction: Fetching marks...');
       const { data } = await api.get("/api/student/getMarks");
-      dispatch(getMarksHelper(data.result));
+      console.log('StudentAction: Marks API response:', data);
+      if (data && data.result) {
+        dispatch(getMarksHelper(data.result));
+      } else {
+        console.log('StudentAction: No marks data received, dispatching empty object');
+        dispatch(getMarksHelper({}));
+      }
     } catch (err) {
-      console.log("Error in getting marks", err.message);
+      console.error("Error in getting marks", err.message);
+      console.error("Error response:", err.response?.data);
+      dispatch(getMarksHelper({}));
     }
   };
 };
@@ -306,4 +320,73 @@ export const studentLogout = () => (dispatch) => {
   localStorage.removeItem("studentToken");
   authToken(false);
   dispatch(setStudent({}));
+};
+
+// New API actions for enhanced functionality
+export const getDashboardData = () => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get("/api/student/dashboard");
+      dispatch({
+        type: "GET_DASHBOARD_DATA",
+        payload: data.result
+      });
+    } catch (err) {
+      console.log("Error in getting dashboard data", err.message);
+    }
+  };
+};
+
+export const getNotifications = () => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get("/api/student/notifications");
+      dispatch({
+        type: "GET_NOTIFICATIONS",
+        payload: data.result
+      });
+    } catch (err) {
+      console.log("Error in getting notifications", err.message);
+    }
+  };
+};
+
+export const markNotificationAsRead = (notificationId) => {
+  return async (dispatch) => {
+    try {
+      await api.put(`/api/student/notifications/${notificationId}/read`);
+      dispatch({
+        type: "MARK_NOTIFICATION_READ",
+        payload: notificationId
+      });
+    } catch (err) {
+      console.log("Error in marking notification as read", err.message);
+    }
+  };
+};
+
+// Admissions
+const admissionsListHelper = (data) => ({ type: "STUDENT_ADMISSIONS_LIST", payload: data });
+const admissionsSubmitHelper = (data) => ({ type: "STUDENT_ADMISSIONS_SUBMIT_SUCCESS", payload: data });
+
+export const studentSubmitAdmission = (form) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.post("/api/student/admissions", form);
+      dispatch(admissionsSubmitHelper(data.result));
+    } catch (err) {
+      dispatch({ type: SET_ERRORS_HELPER, payload: err.response?.data || { message: "Failed to submit application" } });
+    }
+  };
+};
+
+export const studentListAdmissions = () => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get("/api/student/admissions");
+      dispatch(admissionsListHelper(data.result));
+    } catch (err) {
+      dispatch({ type: SET_ERRORS_HELPER, payload: err.response?.data || { message: "Failed to load applications" } });
+    }
+  };
 };

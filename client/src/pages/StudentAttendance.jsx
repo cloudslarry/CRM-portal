@@ -1,32 +1,14 @@
 import React,{useEffect,useState} from 'react'
 import {useNavigate} from 'react-router-dom'
-import {DataGrid} from '@material-ui/data-grid'
+import {DataGrid} from '@mui/x-data-grid'
 import {useSelector,useDispatch} from 'react-redux'
 
 import StudentNavbar from '../components/StudentNavbar'
-import styled from 'styled-components'
+import StudentLayout from '../components/StudentLayout'
+import { Box, Container, Card, CardContent, Typography, Grid, TextField, InputAdornment, Button } from '@mui/material'
+import { CalendarMonth as CalendarMonthIcon, Search as SearchIcon } from '@mui/icons-material'
 
 import {fetchAttendance} from '../redux/actions/studentAction'
-
-const Container = styled.div` 
-width:100%;
-box-sizing:border-box;
-background-color: rgb(255, 255, 255);
-display:flex;
-flex-direction:column;
-border-left: 1px solid rgba(0, 0, 0, 0.158);
-height: 100vh;
-`
-
-const Header = styled.h1` 
-font:400 2rem;
-padding:0.5vmax;
-box-sizing:border-box;
-color:#0077b6;
-transition: all 0.5s;
-margin: 2rem;
-text-align: center;
-`
 
 const StudentAttendance = () => {
 
@@ -34,29 +16,30 @@ const StudentAttendance = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
 
+    const [date, setDate] = useState(() => {
+      const d = new Date();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${d.getFullYear()}-${mm}-${dd}`;
+    })
+
     useEffect(() => {
-        dispatch(fetchAttendance())
+        dispatch(fetchAttendance(date))
     },[dispatch])
 
-    const columns = [
-        {field:"id",headerName:"Subject No.",flex:0.3},
-        {field:"code",headerName:"Subject Code",flex:0.5},
-        {field:"name",headerName:"Subject Name",flex:0.5},
-        {field:"max",headerName:"Max Hours",flex:0.3},
-        {field:"absent",headerName:"Absent Hours",flex:0.3},
-        {field:"total",headerName:"Total Hours",flex:0.4},
-        {field:"attendance",headerName:"Attendance",flex:0.4},
-    ]
+    const refresh = () => {
+      dispatch(fetchAttendance(date))
+    }
 
-    /*
-    const subjects = [
-        {no:1,code:12345,name:"Data Structures",max:40,present:32,absent:8,total:40,attendance:80},
-        {no:2,code:12345,name:"Algorithms",max:40,present:32,absent:8,total:40,attendance:80},
-        {no:3,code:12345,name:"Operating Systems",max:40,present:32,absent:8,total:40,attendance:80},
-        {no:4,code:12345,name:"Database Management",max:40,present:32,absent:8,total:40,attendance:80},
-        {no:5,code:12345,name:"Machine Learning",max:18,present:12,absent:6,total:20,attendance:66.67},
+    const columns = [
+        {field:"id",headerName:"#",flex:0.3, minWidth:60},
+        {field:"code",headerName:"Subject Code",flex:0.8, minWidth:140},
+        {field:"name",headerName:"Subject Name",flex:1.5, minWidth:200},
+        {field:"max",headerName:"Max Hours",flex:0.6, minWidth:120},
+        {field:"absent",headerName:"Absent Hours",flex:0.6, minWidth:120},
+        {field:"total",headerName:"Total Hours",flex:0.6, minWidth:120},
+        {field:"attendance",headerName:"Attendance",flex:0.8, minWidth:120},
     ]
-    */
 
     const rows = [];
     student?.attendence?.forEach((item,index) => {
@@ -71,25 +54,33 @@ const StudentAttendance = () => {
         })
     })
 
-    //console.log(rows);
+    if (!student.isAuthenticated) { navigate('/'); return null }
 
     return(
-        <>
-        {
-            student.isAuthenticated?(
-                <>
-                 <StudentNavbar/>
-        <Container>
-            <Header>STUDENT ATTENDANCE</Header>
-            <DataGrid rows={rows} columns={columns} pageSize={5} disableSelectionOnClick autoHeight/>
+      <StudentLayout title="Attendance">
+        <Container maxWidth="lg">
+          <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>Student Attendance</Typography>
+          <Card sx={{ mb: 2 }}>
+            <CardContent>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField fullWidth type="date" label="Date" value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} InputProps={{ startAdornment: <InputAdornment position="start"><CalendarMonthIcon /></InputAdornment> }} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={2}>
+                  <Button variant="contained" startIcon={<SearchIcon />} onClick={refresh} fullWidth>View</Button>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ height: 560, width: '100%' }}>
+                <DataGrid rows={rows} columns={columns} pageSize={10} rowsPerPageOptions={[5,10,25]} disableSelectionOnClick sx={{ border: 0 }} />
+              </Box>
+            </CardContent>
+          </Card>
         </Container>
-                </>
-
-            ):(
-             navigate('/')
-            )
-        }
-       </>  
+      </StudentLayout>
     )
 }
 

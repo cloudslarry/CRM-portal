@@ -1,6 +1,6 @@
 import api from "../../config/api";
 import authToken from "../utils/authToken";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { SET_ADMIN, SET_ERRORS, GET_SUBJECTS } from "../actionTypes";
 
 const setAdmin = (data) => {
@@ -46,6 +46,7 @@ const getSubjectsHelper = (data) => {
 };
 
 const adminGetAllFacultyHelper = (data) => {
+  console.log('Dispatching faculty data:', data);
   return {
     type: "GET_ALL_FACULTY",
     payload: data,
@@ -53,6 +54,7 @@ const adminGetAllFacultyHelper = (data) => {
 };
 
 const adminGetAllStudentHelper = (data) => {
+  console.log('Dispatching student data:', data);
   return { 
     type: "GET_ALL_STUDENT",
     payload: data,
@@ -66,6 +68,13 @@ const adminGetAllSubjectHelper = (data) => {
   };
 };
 
+const getStatisticsHelper = (data) => {
+  return {
+    type: "GET_STATISTICS",
+    payload: data,
+  };
+};
+
 export const adminLogin = (credentials) => {
   return async (dispatch) => {
     try {
@@ -75,12 +84,12 @@ export const adminLogin = (credentials) => {
       localStorage.setItem("adminToken", token);
       authToken(token);
 
-      const decoded = jwt_decode(token);
+      const decoded = jwtDecode(token);
       dispatch(setAdmin(decoded));
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -108,7 +117,7 @@ export const adminAddFaculty = (facultyCredential) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -125,7 +134,7 @@ export const adminAddStudent = (studentCredential) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -134,17 +143,22 @@ export const adminAddStudent = (studentCredential) => {
 export const adminAddSubject = (subjectCredential) => {
   return async (dispatch) => {
     try {
+      console.log('Adding subject with data:', subjectCredential);
       const { data } = await api.post(
         "/api/admin/addSubject",
         subjectCredential
       );
+      console.log('Subject added successfully:', data);
       dispatch(adminAddSubjectFlag(true));
-      alert("Subject Added Successfully");
+      return { success: true, data };
     } catch (err) {
+      console.log('Error adding subject:', err.response?.data || err.message);
+      const errorData = err.response?.data || { message: "An error occurred" };
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: errorData,
       });
+      return { success: false, error: errorData };
     }
   };
 };
@@ -161,50 +175,153 @@ export const adminAddAdmin = (adminCredentails) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
 };
 
-export const adminGetAllFaculty = (department) => {
+export const adminGetAllFaculty = () => {
   return async (dispatch) => {
     try {
-      const { data } = await api.post("/api/admin/getFaculties", department);
-      dispatch(adminGetAllFacultyHelper(data.result));
+      console.log('Fetching all faculty...');
+      const { data } = await api.post("/api/admin/getAllFaculty");
+      console.log('Faculty API response:', data);
+      dispatch(adminGetAllFacultyHelper(data?.result ?? []));
     } catch (err) {
+      console.error('Faculty fetch error:', err);
+      // If API returns 404 or no result, normalize to empty list to avoid stale UI
+      if (err.response && (err.response.status === 404 || err.response.status === 204)) {
+        dispatch(adminGetAllFacultyHelper([]));
+      } else {
+        dispatch({
+          type: SET_ERRORS,
+          payload: err.response?.data || { message: "Failed to fetch faculty" },
+        });
+      }
+    }
+  };
+};
+
+export const adminViewFaculty = (id) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get(`/api/admin/faculty/${id}`);
+      return { payload: data.result };
+    } catch (err) {
+      return { error: err.response?.data || { message: "Failed to fetch faculty" } };
+    }
+  };
+};
+
+export const adminUpdateFaculty = (id, updates) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.put(`/api/admin/faculty/${id}`, updates);
+      await dispatch(adminGetAllFaculty());
+      return { payload: data.result };
+    } catch (err) {
+      return { error: err.response?.data || { message: "Failed to update faculty" } };
+    }
+  };
+};
+
+export const adminDeleteFaculty = (id) => {
+  return async (dispatch) => {
+    try {
+      await api.delete(`/api/admin/faculty/${id}`);
+      await dispatch(adminGetAllFaculty());
+      return { payload: true };
+    } catch (err) {
+      return { error: err.response?.data || { message: "Failed to delete faculty" } };
+    }
+  };
+};
+
+export const adminBulkDeleteFaculty = (ids) => {
+  return async (dispatch) => {
+    try {
+      await api.post(`/api/admin/faculty/bulk-delete`, { ids });
+      await dispatch(adminGetAllFaculty());
+      return { payload: true };
+    } catch (err) {
+      return { error: err.response?.data || { message: "Failed to delete selected faculty" } };
+    }
+  };
+};
+
+export const adminGetAllStudent = () => {
+  return async (dispatch) => {
+    try {
+      console.log('Fetching all students...');
+      const { data } = await api.post("/api/admin/getAllStudent");
+      console.log('Student API response:', data);
+      dispatch(adminGetAllStudentHelper(data?.result ?? []));
+    } catch (err) {
+      console.error('Student fetch error:', err);
+      if (err.response && (err.response.status === 404 || err.response.status === 204)) {
+        dispatch(adminGetAllStudentHelper([]));
+      } else {
+        dispatch({
+          type: SET_ERRORS,
+          payload: err.response?.data || { message: "Failed to fetch students" },
+        });
+      }
+    }
+  };
+};
+
+export const adminGetAllSubject = () => {
+  return async (dispatch) => {
+    try {
+      console.log('Fetching all subjects...');
+      // Server expects POST /getAllSubject (singular)
+      const { data } = await api.post("/api/admin/getAllSubject");
+      console.log('Subjects fetched successfully:', data);
+      dispatch(adminGetAllSubjectHelper(data?.result ?? []));
+      return { success: true, data };
+    } catch (err) {
+      console.log('Error fetching subjects:', err.response?.data || err.message);
+      if (err.response && (err.response.status === 404 || err.response.status === 204)) {
+        dispatch(adminGetAllSubjectHelper([]));
+        return { success: true, data: { result: [] } };
+      }
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "Failed to fetch subjects" },
+      });
+      return { success: false, error: err.response?.data || err.message };
+    }
+  };
+};
+
+export const getStatistics = () => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get("/api/admin/statistics");
+      console.log("Statistics API Response:", data);
+      dispatch(getStatisticsHelper(data.statistics));
+    } catch (err) {
+      console.log("Statistics API Error:", err);
+      dispatch({
+        type: SET_ERRORS,
+        payload: err.response?.data || { message: "Failed to fetch statistics" },
       });
     }
   };
 };
 
-export const adminGetAllStudent = (credentials) => {
+export const adminUpdatePassword = (passwordData) => {
   return async (dispatch) => {
     try {
-      const { data } = await api.post("/api/admin/getStudents", credentials);
-      dispatch(adminGetAllStudentHelper(data.result));
+      const { data } = await api.post("/api/admin/updatePassword", passwordData);
+      return data;
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "Failed to update password" },
       });
-    }
-  };
-};
-
-export const adminGetAllSubject = (credentials) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.post("/api/admin/getSubjects", credentials);
-      dispatch(adminGetAllSubjectHelper(data.result));
-    } catch (err) {
-      dispatch({
-        type: SET_ERRORS,
-        payload: err.response.data,
-      });
+      throw err;
     }
   };
 };
@@ -223,4 +340,42 @@ export const adminLogout = () => (dispatch) => {
   authToken(false);
   // Set current user to {} which will set isAuthenticated to false
   dispatch(setAdmin({}));
+};
+
+// Admissions (Admin)
+const adminAdmissionsListHelper = (data) => ({ type: "ADMIN_ADMISSIONS_LIST", payload: data });
+const adminAdmissionsUpdateHelper = (data) => ({ type: "ADMIN_ADMISSIONS_UPDATE", payload: data });
+
+export const adminListAdmissions = (status) => {
+  return async (dispatch) => {
+    try {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const { data } = await api.get(`/api/admin/admissions${query}`);
+      dispatch(adminAdmissionsListHelper(data.result));
+    } catch (err) {
+      dispatch({ type: SET_ERRORS, payload: err.response?.data || { message: "Failed to fetch applications" } });
+    }
+  };
+};
+
+export const adminApproveAdmission = (applicationId, note) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.post(`/api/admin/admissions/${applicationId}/approve`, { note });
+      dispatch(adminAdmissionsUpdateHelper(data.result));
+    } catch (err) {
+      dispatch({ type: SET_ERRORS, payload: err.response?.data || { message: "Failed to approve application" } });
+    }
+  };
+};
+
+export const adminRejectAdmission = (applicationId, note) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.post(`/api/admin/admissions/${applicationId}/reject`, { note });
+      dispatch(adminAdmissionsUpdateHelper(data.result));
+    } catch (err) {
+      dispatch({ type: SET_ERRORS, payload: err.response?.data || { message: "Failed to reject application" } });
+    }
+  };
 };

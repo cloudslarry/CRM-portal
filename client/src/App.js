@@ -1,7 +1,7 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import authToken from "./redux/utils/authToken";
 import store from "./redux/store";
 
@@ -23,6 +23,11 @@ import {
   AdminAddFaculty,
   AdminAddStudent,
   AdminAddSubject,
+  AdminAddDepartment,
+  AdminGetDepartments,
+  AdminSettings,
+  FacultySettings,
+  StudentSettings,
   FacultyDashboard,
   FacultyUploadMarks,
   FacultyAttendance,
@@ -39,12 +44,21 @@ import {
   ForgotPassword,
   Chat,
   StudentChats,
+  StudentNotifications,
+  FacultyNotifications,
+  StudentApplyAdmission,
+  AdminReviewAdmissions,
+  PublicAdmissionApply,
+  ApplicantStatus,
+  Courses,
+  CollegeInfo,
+  ApplicantAuth,
 } from "./pages";
 
 //Handle JWT Token
 if (window.localStorage.facultyToken) {
   authToken(localStorage.facultyToken);
-  const decoded = jwt_decode(localStorage.facultyToken);
+  const decoded = jwtDecode(localStorage.facultyToken);
   store.dispatch(setFacultyUser(decoded));
 
   //Check if token expired
@@ -55,7 +69,7 @@ if (window.localStorage.facultyToken) {
   }
 } else if (window.localStorage.studentToken) {
   authToken(localStorage.studentToken);
-  const decoded = jwt_decode(localStorage.studentToken);
+  const decoded = jwtDecode(localStorage.studentToken);
   store.dispatch(setStudentUser(decoded));
 
   //Check if token expired
@@ -66,7 +80,7 @@ if (window.localStorage.facultyToken) {
   }
 } else if (window.localStorage.adminToken) {
   authToken(localStorage.adminToken);
-  const decoded = jwt_decode(localStorage.adminToken);
+  const decoded = jwtDecode(localStorage.adminToken);
   store.dispatch(setAdminUser(decoded));
 
   //Check if token expired
@@ -106,6 +120,35 @@ function App() {
             path="/admin/add/subjects"
             element={<AdminAddSubject />}
           />
+          <Route exact path="/student/admissions/apply" element={<StudentApplyAdmission />} />
+          <Route exact path="/admin/admissions" element={<AdminReviewAdmissions />} />
+          <Route exact path="/student/notifications" element={<StudentNotifications />} />
+          <Route exact path="/faculty/notifications" element={<FacultyNotifications />} />
+          <Route
+            exact
+            path="/admin/departments"
+            element={<AdminGetDepartments />}
+          />
+          <Route
+            exact
+            path="/admin/add/department"
+            element={<AdminAddDepartment />}
+          />
+          <Route
+            exact
+            path="/admin/settings"
+            element={<AdminSettings />}
+          />
+          <Route
+            exact
+            path="/faculty/settings"
+            element={<FacultySettings />}
+          />
+          <Route
+            exact
+            path="/student/settings"
+            element={<StudentSettings />}
+          />
           <Route
             exact
             path="/student/subjects"
@@ -144,6 +187,11 @@ function App() {
             path="/faculty/attendance"
             element={<FacultyAttendance />}
           />
+          <Route exact path="/admissions/apply" element={<PublicAdmissionApply />} />
+          <Route exact path="/admissions/status" element={<ApplicantStatus />} />
+          <Route exact path="/courses" element={<Courses />} />
+          <Route exact path="/college" element={<CollegeInfo />} />
+          <Route exact path="/applicant/auth" element={<ApplicantAuth />} />
           <Route
             exact
             path="/student/updatePassword"

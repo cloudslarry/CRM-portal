@@ -6,6 +6,8 @@ const passport = require("passport");
 const fileUpload = require("express-fileupload");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const ChatServer = require("./websocket/chatServer");
+const keys = require("./config/key");
 dotenv.config();
 
 //Setup Middlewares
@@ -42,10 +44,19 @@ let _response = {};
 const adminRoutes = require("./routes/adminRoutes");
 const facultyRoutes = require("./routes/facultyRoutes");
 const studentRoutes = require("./routes/studentRoutes");
+const applicantRoutes = require("./routes/applicantRoutes");
+const { publicSubmitApplication } = require("./controllers/admissionController");
+const { getAdmissionStatus, getCourses, getCollegeInfo } = require("./controllers/publicController");
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/faculty", facultyRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/applicant", applicantRoutes);
+// Public admissions endpoint
+app.post("/api/admissions/apply", publicSubmitApplication);
+app.get("/api/admissions/status", getAdmissionStatus);
+app.get("/api/public/courses", getCourses);
+app.get("/api/public/college-info", getCollegeInfo);
 
 //404 Route Error
 app.use((req, res, next) => {
@@ -64,11 +75,11 @@ app.use((error, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || keys.port;
 
 //Connect to MongoDB
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI || keys.mongoURI)
   .then((data) => {
     _response.database = "Healthy";
     console.log(`MongoDB connected with server ${data.connection.host}`);
@@ -85,4 +96,8 @@ app.use("/", (req, res) => {
 server.listen(PORT, () => {
   _response.server = "Healthy";
   console.log(`Server running on port: ${PORT}`);
+  
+  // Initialize WebSocket server
+  const chatServer = new ChatServer(server);
+  console.log('WebSocket server initialized');
 });

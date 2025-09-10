@@ -12,6 +12,13 @@ const initialState = {
   allFaculty: [],
   allStudent: [],
   allSubject: [],
+  statistics: {
+    totalStudents: 0,
+    facultyMembers: 0,
+    subjects: 0,
+    departments: 0
+  },
+  admissions: [],
 };
 
 const adminReducer = (state = initialState, action) => {
@@ -53,12 +60,14 @@ const adminReducer = (state = initialState, action) => {
       };
     }
     case "GET_ALL_FACULTY": {
+      console.log('Reducer: Setting allFaculty to:', action.payload);
       return {
         ...state,
         allFaculty: action.payload,
       };
     }
     case "GET_ALL_STUDENT": {
+      console.log('Reducer: Setting allStudent to:', action.payload);
       return {
         ...state,
         allStudent: action.payload,
@@ -68,6 +77,26 @@ const adminReducer = (state = initialState, action) => {
       return {
         ...state,
         allSubject: action.payload,
+      };
+    }
+    case "GET_STATISTICS": {
+      return {
+        ...state,
+        statistics: action.payload,
+      };
+    }
+    case "ADMIN_ADMISSIONS_LIST": {
+      return {
+        ...state,
+        admissions: action.payload || [],
+      };
+    }
+    case "ADMIN_ADMISSIONS_UPDATE": {
+      return {
+        ...state,
+        admissions: (state.admissions || []).map((item) =>
+          item._id === action.payload?._id ? action.payload : item
+        ),
       };
     }
     default:

@@ -1,6 +1,6 @@
 import api from "../../config/api";
 import authToken from "../utils/authToken";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import {
   SET_FACULTY,
   SET_ERRORS,
@@ -38,12 +38,12 @@ export const facultyLogin = (credentials) => {
       localStorage.setItem("facultyToken", token);
       authToken(token);
 
-      const decoded = jwt_decode(token);
+      const decoded = jwtDecode(token);
       dispatch(setFaculty(decoded));
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -60,7 +60,7 @@ export const facultyUpdatePassword = (passwordData) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -75,7 +75,7 @@ export const getOTPFaculty = (email) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -89,7 +89,7 @@ export const submitOTPFaculty = (credentials) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -108,7 +108,7 @@ export const fetchStudents = (department, year, section) => {
     } catch (err) {
       dispatch({
         type: SET_ERRORS,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };
@@ -140,24 +140,43 @@ export const markAttendance = (
   subjectCode,
   department,
   year,
-  section
+  section,
+  date
 ) => {
   return async (dispatch) => {
     try {
-      await api.post("/api/faculty/markAttendance", {
+      console.log('Redux: Sending attendance request:', {
         selectedStudents,
         subjectCode,
         department,
         year,
         section,
+        date
       });
-      //alert("Attendance has been marked successfully");
+      
+      const response = await api.post("/api/faculty/markAttendance", {
+        selectedStudents,
+        subjectCode,
+        department,
+        year,
+        section,
+        date,
+      });
+      
+      console.log('Redux: Attendance response received:', response.data);
+      
       dispatch({
         type: "HELPER",
         payload: true,
       });
+      
+      return { payload: response.data };
     } catch (err) {
-      console.log(err);
+      console.error('Redux: Error in markAttendance:', err);
+      console.error('Redux: Error response:', err.response?.data);
+      return { 
+        error: err.response || { data: { message: 'Failed to mark attendance' } } 
+      };
     }
   };
 };
@@ -190,7 +209,7 @@ export const uploadMarks = (
     } catch (err) {
       dispatch({
         type: SET_ERRORS_HELPER,
-        payload: err.response.data,
+        payload: err.response?.data || { message: "An error occurred" },
       });
     }
   };

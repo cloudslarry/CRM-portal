@@ -1,13 +1,15 @@
 import React,{useEffect} from 'react'
 import {useNavigate} from 'react-router-dom'
-import {DataGrid} from '@material-ui/data-grid'
+import {DataGrid} from '@mui/x-data-grid'
 import {useSelector,useDispatch} from 'react-redux'
 
 import StudentNavbar from '../../components/StudentNavbar'
+import StudentLayout from '../../components/StudentLayout'
+import { Box, Container, Card, CardContent, Typography } from '@mui/material'
 import styled from 'styled-components'
 import {getAllSubjects} from '../../redux/actions/studentAction'
 
-const Container = styled.div` 
+const ContainerDiv = styled.div` 
 width:100%;
 box-sizing:border-box;
 background-color: rgb(255, 255, 255);
@@ -34,8 +36,9 @@ const StudentSubjectList = () => {
     const dispatch = useDispatch()
 
     useEffect(() => {
+       console.log('StudentSubjectList: Fetching subjects...');
        dispatch(getAllSubjects())
-    },[])
+    },[dispatch])
 
     const columns = [
         {field:"id",headerName:"Subject No.",flex:0.3},
@@ -56,7 +59,7 @@ const StudentSubjectList = () => {
     */
 
     const rows = [];
-    student.allSubjects.forEach((item,index) => {
+    student.allSubjects && student.allSubjects.forEach((item,index) => {
         rows.push({
             id:index+1,
             code:item.subjectCode,
@@ -66,25 +69,23 @@ const StudentSubjectList = () => {
         })
     })
 
-    //console.log(rows);
+    console.log('StudentSubjectList: Subjects data:', student.allSubjects);
+    console.log('StudentSubjectList: Rows data:', rows);
+
+    if (!student.isAuthenticated) { navigate('/'); return null }
 
     return(
-        <>
-        {
-            student.isAuthenticated?
-            (
-             <>
-             <StudentNavbar/>
-        <Container>
-            <Header>SUBJECTS LIST</Header>
-            <DataGrid rows={rows} columns={columns} pageSize={5} disableSelectionOnClick autoHeight/>
+      <StudentLayout title="Subjects">
+        <Container maxWidth="lg">
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ height: 560, width: '100%' }}>
+                <DataGrid rows={rows} columns={columns} pageSize={10} rowsPerPageOptions={[5,10,25]} disableSelectionOnClick sx={{ border: 0 }} />
+              </Box>
+            </CardContent>
+          </Card>
         </Container>
-             </>
-            ):(
-                navigate('/')
-            )
-        }
-        </>
+      </StudentLayout>
     )
 }
 

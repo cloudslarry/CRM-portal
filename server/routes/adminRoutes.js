@@ -10,12 +10,29 @@ const {
   addSubject,
   addAdmin,
   getAllFaculty,
+  getFacultyById,
+  updateFaculty,
+  deleteFaculty,
+  bulkDeleteFaculty,
   getAllStudents,
   getAllSubjects,
   getFaculty,
   getStudents,
   getSubjects,
+  getStatistics,
+  testStatistics,
+  adminUpdatePassword,
+  getNotifications,
+  markNotificationAsRead,
+  createNotification,
+  getDashboardData,
+  getAnalytics,
 } = require("../controllers/adminController");
+const {
+  adminListApplications,
+  adminApproveApplication,
+  adminRejectApplication,
+} = require("../controllers/admissionController");
 
 router.post("/login", adminLogin);
 router.post("/addAdmin", addAdmin);
@@ -39,6 +56,28 @@ router.post(
   "/getAllFaculty",
   passport.authenticate("jwt", { session: false }),
   getAllFaculty
+);
+
+// Faculty CRUD
+router.get(
+  "/faculty/:id",
+  passport.authenticate("jwt", { session: false }),
+  getFacultyById
+);
+router.put(
+  "/faculty/:id",
+  passport.authenticate("jwt", { session: false }),
+  updateFaculty
+);
+router.delete(
+  "/faculty/:id",
+  passport.authenticate("jwt", { session: false }),
+  deleteFaculty
+);
+router.post(
+  "/faculty/bulk-delete",
+  passport.authenticate("jwt", { session: false }),
+  bulkDeleteFaculty
 );
 router.post(
   "/getAllStudent",
@@ -64,6 +103,63 @@ router.post(
   "/getSubjects",
   passport.authenticate("jwt", { session: false }),
   getSubjects
+);
+router.get(
+  "/statistics",
+  passport.authenticate("jwt", { session: false }),
+  getStatistics
+);
+router.get("/test-statistics", testStatistics);
+router.post(
+  "/updatePassword",
+  passport.authenticate("jwt", { session: false }),
+  adminUpdatePassword
+);
+
+// Dashboard and Notifications
+router.get(
+  "/dashboard",
+  passport.authenticate("jwt", { session: false }),
+  getDashboardData
+);
+router.get(
+  "/notifications",
+  passport.authenticate("jwt", { session: false }),
+  getNotifications
+);
+router.put(
+  "/notifications/:notificationId/read",
+  passport.authenticate("jwt", { session: false }),
+  markNotificationAsRead
+);
+router.post(
+  "/notifications",
+  passport.authenticate("jwt", { session: false }),
+  createNotification
+);
+
+// Analytics
+router.get(
+  "/analytics",
+  passport.authenticate("jwt", { session: false }),
+  getAnalytics
+);
+
+// Admissions (Admin)
+router.get(
+  "/admissions",
+  passport.authenticate("jwt", { session: false }),
+  adminListApplications
+);
+router.post(
+  "/admissions/:applicationId/approve",
+  passport.authenticate("jwt", { session: false }),
+  adminApproveApplication
+);
+router.post(
+  "/admissions/:applicationId/reject",
+  passport.authenticate("jwt", { session: false }),
+  adminRejectApplication
 );
 
 module.exports = router;

@@ -2,130 +2,99 @@ import React from 'react'
 import {useSelector} from 'react-redux'
 import {Link,useNavigate} from 'react-router-dom'
 import StudentNavbar from '../components/StudentNavbar'
-
-import styled from 'styled-components'
-
-
-const Container = styled.div`
-display:flex;
-height:100vh;
-width:100vw;
-max-width:100%;
-background-color:white;
-`
-
-const Header = styled.div` 
-display:flex;
-height:100vh;
-width:100vw;
-max-width:100%;
-flex-direction: column;
-justify-content: center;
-align-items: center;
->h1{
-    font:500 2.2vmax;
-    color:#0077b6;
-    transform:translateX(-10vmax) translateY(-2vmax)
-}
->img{
-    width:20vmax;
-    object-fit:contain;
-    border-radius:100%;
-    transition:all 0.5s;
-}
->a{
-    border-radius: 10px;
-    background-color: #0077b6;
-    font: 400 1vmax;
-    color: white;
-    text-decoration: none;
-    padding: 0.5vmax;
-    width: 30%;
-    margin: 4vmax;
-    text-align: center;
-    transition: all 0.5s;
-}
-`
-
-const ProfileInfo = styled.div` 
-display:flex;
-height:100vh;
-width:100vw;
-max-width:100%;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-`
-
-const ProfileInfoItem = styled.div` 
-justify-content:space-evenly;
-align-items:center;
-padding:1.5vmax;
-box-sizing:border-box;
-border-bottom:0.5px solid #0077b6;
->h4{
-    color:#0077b6;
-    font:400 1.2vmax;
-    text-align:center;
-};
->p{
-    color:black;
-    font:400 1vmax;
-    margin:0.2vmax;
-}
-`
-
+import StudentLayout from '../components/StudentLayout'
+import { Box, Container, Grid, Card, CardContent, Typography, Avatar, Button } from '@mui/material'
+import { School as SchoolIcon, Email as EmailIcon, Phone as PhoneIcon, Person as PersonIcon, CalendarToday as CalendarIcon, ArrowForward as ArrowForwardIcon } from '@mui/icons-material'
 
 const StudentDashboard = () => {
-    const student = useSelector((store) => store.student)
+    const studentStore = useSelector((store) => store.student)
+    const s = studentStore.student?.student || {}
     const navigate = useNavigate();
+
+  if (!studentStore.isAuthenticated) { navigate('/'); return null }
+
   return (
-    <>
-    {
-        student.isAuthenticated ? (
-<>
-<StudentNavbar/>
-    <Container>
-      <Header>
-          <h1>Student Profile</h1>
-          <img src={student.student.student.avatar.url} />
-          <h3>{student.student.student.name}</h3>
-          <h3>{student.student.student.registrationNumber}</h3>
-          <Link to="/student/update">Update Profile</Link>
-      </Header>
-      <ProfileInfo>
-          <ProfileInfoItem>
-              <h4>Email</h4>
-              <p>{student.student.student.email}</p>
-          </ProfileInfoItem>
-          <ProfileInfoItem>
-              <h4>Department</h4>
-              <p>{student.student.student.department}</p>
-          </ProfileInfoItem>
-          <ProfileInfoItem>
-              <h4>Year</h4>
-              <p>{student.student.student.year}</p>
-          </ProfileInfoItem>
-          <ProfileInfoItem>
-              <h4>Mobile Number</h4>
-              <p>{student.student.student.studentMobileNumber}</p>
-          </ProfileInfoItem>
-          <ProfileInfoItem>
-              <h4>Father Name</h4>
-              <p>{student.student.student.fatherName}</p>
-          </ProfileInfoItem>
-          <ProfileInfoItem>
-              <h4>Parent Number</h4>
-              <p>{student.student.student.fatherMobileNumber}</p>
-          </ProfileInfoItem>
-      </ProfileInfo>
-    </Container>
-</>
-        ):(
-            navigate('/')
-        )
-    }  
-    </>
+    <StudentLayout title="Student Dashboard">
+      <Container maxWidth="lg">
+        <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <Avatar src={s.avatar?.url} sx={{ width: 96, height: 96, mx: 'auto', mb: 1 }} />
+          <Typography variant="h5" fontWeight={700}>{s.name}</Typography>
+          <Typography variant="body2" color="text.secondary">{s.registrationNumber}</Typography>
+        </Box>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'primary.main' }}><EmailIcon/></Avatar>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Email</Typography>
+                  <Typography variant="subtitle1">{s.email}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'success.main' }}><SchoolIcon/></Avatar>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Department</Typography>
+                  <Typography variant="subtitle1">{s.department}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'warning.main' }}><CalendarIcon/></Avatar>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Year</Typography>
+                  <Typography variant="subtitle1">{s.year}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'info.main' }}><PhoneIcon/></Avatar>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Mobile</Typography>
+                  <Typography variant="subtitle1">{s.studentMobileNumber}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>Quick Links</Typography>
+                <Button fullWidth variant="text" onClick={() => navigate('/student/subjects')} endIcon={<ArrowForwardIcon/>}>Subjects</Button>
+                <Button fullWidth variant="text" onClick={() => navigate('/student/performance')} endIcon={<ArrowForwardIcon/>}>Performance</Button>
+                <Button fullWidth variant="text" onClick={() => navigate('/student/attendance')} endIcon={<ArrowForwardIcon/>}>Attendance</Button>
+                <Button fullWidth variant="text" onClick={() => navigate('/student/settings')} endIcon={<ArrowForwardIcon/>}>Settings</Button>
+                <Button fullWidth variant="text" onClick={() => navigate('/student/search')} endIcon={<ArrowForwardIcon/>}>Search Students</Button>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>About</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Keep your profile up-to-date and track your academic progress. Use the quick links to view subjects, performance, and attendance.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Container>
+    </StudentLayout>
   )
 }
 

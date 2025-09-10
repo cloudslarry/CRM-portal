@@ -1,113 +1,55 @@
-import React,{useState,useEffect} from 'react'
-import {useSelector,useDispatch} from 'react-redux'
-import StudentNavbar from '../../components/StudentNavbar'
-import {Link,useNavigate} from 'react-router-dom'
-
-import styled from 'styled-components'
-import {Message,Inbox} from '@material-ui/icons'
-
-const Container = styled.div` 
-display:flex;
-align-items:center;
-justify-content:center;
-width:100vw;
-`
-const Wrapper = styled.div` 
-width:100%;
-box-sizing:border-box;
-display:flex;
-align-items:center;
-justify-content:center;
-flex-direction:column;
-`
-
-const Header = styled.h1` 
-font:400 2rem;
-padding:0.5vmax;
-box-sizing:border-box;
-color:#0077b6;
-transition: all 0.5s;
-margin: 2rem;
-text-align: center;
-border-bottom: 1px solid rgba(0, 0, 0, 0.158);
-`
-
-const ChatContainer = styled.div` 
-display:flex;
-align-items: center;
-justify-content:space-between;
-width:50%;
-  padding: 10px;
-  cursor: pointer;
-  margin-top: 10px;
-  border-bottom: 1px solid #0077b6;
-`
-
-const ChatButton = styled.button` 
-margin-left:20px;
-width:70px;
-height:40px;
-border:none;
-border-radius:5px;
-cursor:pointer;
-background-color:#0077b6;
-color:white;
-`
-
-const ChatImg = styled.img` 
-width:40px;
-height:40px;
-border-radius:50%;
-object-fit:cover;
-margin-right:20px;
-`
-const ChatName = styled.span` 
-font-weight: 500;
-`
-
-
+import React from 'react'
+import {useSelector} from 'react-redux'
+import { Link } from 'react-router-dom'
+import StudentLayout from '../../components/StudentLayout'
+import { Box, Container, Card, CardContent, Typography, List, ListItem, ListItemAvatar, Avatar, ListItemText, Button, Divider } from '@mui/material'
+import { Message as MessageIcon, Inbox as InboxIcon } from '@mui/icons-material'
 
 const StudentChats = () => {
     const student = useSelector((store) => store.student)
-    //const navigate = useNavigate();
-    
+
     return(
-        <>
-        <StudentNavbar/>
-        <Container>
-              <Wrapper>
-              <Header>Messages</Header>
-                  {
-                      student.newerChats.map((res,index) => (
-                          <ChatContainer key={index}>
-                              <Message style={{height:"40px",width:"40px",color:"#0077b6",marginRight:"20px"}}/>
-                              <ChatName>{res.senderName}</ChatName>
-                              <Link to ={`/chat/${res.receiverRegistrationNumber}.${res.senderRegistrationNumber}`}>
-                               <ChatButton>Chat</ChatButton>
-                              </Link> 
-                          </ChatContainer>
-                      ))
-                  }
-
-                  {
-student.previousChats.map((res,index) => (
-    <ChatContainer key={index}>
-        <Inbox style={{height:"40px",width:"40px",color:"#0077b6",marginRight:"20px"}}/>
-        <ChatName>{res.receiverName}</ChatName>
-        <Link to ={`/chat/${res.senderRegistrationNumber}.${res.receiverRegistrationNumber}`}>
-            <ChatButton>Chat</ChatButton>
-        </Link> 
-    </ChatContainer>
-))
-                  }
-
-                      
-                  
-              </Wrapper>
+      <StudentLayout title="Messages">
+        <Container maxWidth="md">
+          <Card>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>New Messages</Typography>
+              <List>
+                {student.newerChats.map((res,index) => (
+                  <React.Fragment key={`new-${index}`}>
+                    <ListItem secondaryAction={
+                      <Button variant="contained" size="small" component={Link} to={`/chat/${res.receiverRegistrationNumber}.${res.senderRegistrationNumber}`}>Chat</Button>
+                    }>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: 'primary.main' }}><MessageIcon/></Avatar>
+                      </ListItemAvatar>
+                      <ListItemText primary={res.senderName} secondary={res.senderRegistrationNumber} />
+                    </ListItem>
+                    <Divider component="li" />
+                  </React.Fragment>
+                ))}
+              </List>
+              <Typography variant="h6" fontWeight={700} sx={{ mt: 2, mb: 1 }}>Previous Chats</Typography>
+              <List>
+                {student.previousChats.map((res,index) => (
+                  <React.Fragment key={`old-${index}`}>
+                    <ListItem secondaryAction={
+                      <Button variant="outlined" size="small" component={Link} to={`/chat/${res.senderRegistrationNumber}.${res.receiverRegistrationNumber}`}>Chat</Button>
+                    }>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: 'info.main' }}><InboxIcon/></Avatar>
+                      </ListItemAvatar>
+                      <ListItemText primary={res.receiverName} secondary={res.receiverRegistrationNumber} />
+                    </ListItem>
+                    <Divider component="li" />
+                  </React.Fragment>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
         </Container>
-        </>
+      </StudentLayout>
     )
-
 }
 
 export default StudentChats; 

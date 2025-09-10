@@ -16,6 +16,10 @@ const initialState = {
   allSubjects: [],
   attendance: [],
   allMarks: {},
+  dashboardData: {},
+  notifications: [],
+  admissions: [],
+  lastAdmission: null,
 };
 
 const studentReducer = (state = initialState, action) => {
@@ -67,6 +71,7 @@ const studentReducer = (state = initialState, action) => {
         previousChats: action.payload,
       };
     case "GET_ALL_SUBJECTS":
+      console.log('StudentReducer: Setting allSubjects to:', action.payload);
       return {
         ...state,
         allSubjects: action.payload,
@@ -79,9 +84,44 @@ const studentReducer = (state = initialState, action) => {
       };
 
     case "GET_MARKS":
+      console.log('StudentReducer: Setting allMarks to:', action.payload);
       return {
         ...state,
         allMarks: action.payload,
+      };
+
+    case "GET_DASHBOARD_DATA":
+      return {
+        ...state,
+        dashboardData: action.payload,
+      };
+
+    case "GET_NOTIFICATIONS":
+      return {
+        ...state,
+        notifications: action.payload,
+      };
+
+    case "MARK_NOTIFICATION_READ":
+      return {
+        ...state,
+        notifications: state.notifications?.map(notification => 
+          notification._id === action.payload 
+            ? { ...notification, isRead: true, readAt: new Date() }
+            : notification
+        ),
+      };
+
+    case "STUDENT_ADMISSIONS_LIST":
+      return {
+        ...state,
+        admissions: action.payload || [],
+      };
+    case "STUDENT_ADMISSIONS_SUBMIT_SUCCESS":
+      return {
+        ...state,
+        lastAdmission: action.payload,
+        admissions: [action.payload, ...(state.admissions || [])],
       };
 
     default:

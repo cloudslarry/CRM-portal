@@ -1,143 +1,34 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate,useParams } from 'react-router-dom'
-import {useAlert} from 'react-alert'
+import toast from 'react-hot-toast'
 
 import { getOTPStudent, submitOTPStudent } from '../redux/actions/studentAction'
 import { getOTPFaculty, submitOTPFaculty } from '../redux/actions/facultyAction'
 
-import styled from 'styled-components'
-
-import {Class,Face,MailOutline,Phone,PhoneIphone,SupervisorAccount,CalendarToday,} from '@material-ui/icons'
-
-const Container = styled.div`
-width:100vw;
-height:100vh;
-max-width:100%;
-display:flex;
-justify-content:center;
-align-items: center;
-background-color:rgb(231,231,231);
-`
-
-const ProfileBox = styled.div` 
-background-color:white;
-width:25vw;
-height:70vh;
-box-sizing:border-box;
-`
-
-const ProfileHeader = styled.h1` 
-text-align:center;
-color:#0077b6;
-font:400 1.3vmax;
-padding:1.3vmax;
-border-bottom:1px solid #0077b6;
-width:50%;
-margin:auto;
-`
-
-const ProfileForm = styled.form` 
-display:flex;
-flex-direction: column;
-align-items:center;
-justify-content:space-evenly;
-margin: auto;
-padding: 2vmax;
-height: 70%;
->div{
-    display:flex;
-    align-items:center;
-    width:100%;
-}
-`
-const ProfileName = styled.div` 
->select{
-    padding:1vmax 4vmax;
-    padding-right:1vmax;
-    width:100%;
-    box-sizing:border-box;
-    border:1px solid rgba(0,0,0,0.267);
-    border-radius:4px;
-    font:300 0.9vmax;
-    outline:none;
-};
->svg{
-    position:absolute;
-    transform:translateX(1vmax);
-    font-size:1.6vmax;
-}
-`
-const ProfileEmail = styled.div` 
->svg{
-    position:absolute;
-    transform:translateX(1vmax);
-    font-size:1.6vmax;
-}
-`
-const ProfilePhone = styled.div` 
->svg{
-    position:absolute;
-    transform:translateX(1vmax);
-    font-size:1.6vmax;
-}
-`
-
-const ProfileImage = styled.div` 
->img{
-    width:3vmax;
-    border-radius:100%;
-    margin:1vmax;
-}
->input{
-    display:flex;
-    padding:0%;
-}
-`
-const ProfileInput = styled.input` 
-padding:1vmax 4vmax;
-padding-right:1vmax;
-width:100%;
-box-sizing:border-box;
-border:1px solid #0077b6;
-border-radius:4px;
-font:300 0.9vmax;
-outline:none;
-`
-const ProfileButton = styled.button` 
-border:none;
-background-color: #0077b6;
-color:white;
-font:300 0.9vmax;
-width: 100%;
-  padding: 0.8vmax;
-  cursor: pointer;
-  border-radius: 4px;
-  outline: none;
-  box-shadow:0 2px 5px rgba(0,0,0,0.219);
-`
+import { Box, Container, Card, CardContent, Typography, TextField, Button, Grid, Stepper, Step, StepLabel, InputAdornment, IconButton, Tooltip } from '@mui/material'
+import { MailOutline as MailIcon, PhoneIphone as OtpIcon, Lock as LockIcon, LockOpen as LockOpenIcon, Send as SendIcon, CheckCircle as CheckIcon, Brightness4 as DarkModeIcon, Brightness7 as LightModeIcon } from '@mui/icons-material'
+import { useTheme as useCustomTheme } from '../contexts/ThemeContext'
 
 const ForgotPassword = () => {
     const store = useSelector((store) => store)
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const params = useParams();
-    const alert = useAlert();
 
     const [user,setUser] = useState("");
     const [email,setEmail] = useState("");
     const [otp, setOtp] = useState('')
     const [newPassword, setNewPassword] = useState('')
     const [confirmNewPassword, setConfirmNewPassword] = useState("")
-    
-   
-    const [error, setErrors] = useState({})
+
     const [helper,setHelper] = useState(false);
+    const [loading, setLoading] = useState(false)
+    const { darkMode, toggleTheme } = useCustomTheme()
 
     useEffect(() => {
       setUser(params.user);
-    },[user])
-
+    },[params.user])
 
     useEffect(() => {
         if (store.student.flag) {
@@ -147,81 +38,144 @@ const ForgotPassword = () => {
 
     const sendOtpHandler = (e) => {
         e.preventDefault();
+        setLoading(true)
         if(user === "student")
         {
-            dispatch(getOTPStudent({email}))
+            dispatch(getOTPStudent({email})).finally(() => setLoading(false))
         }
-
         else if (user === "faculty") {
-            dispatch(getOTPFaculty({email}))
+            dispatch(getOTPFaculty({email})).finally(() => setLoading(false))
          }
     }
-    
+
     const submitOtpHandler = (e) => {
         e.preventDefault();  
+        if (newPassword !== confirmNewPassword) {
+          toast.error('Passwords do not match');
+          return;
+        }
+        setLoading(true)
         if (user === "student") {
-            dispatch(submitOTPStudent({ email, otp, newPassword, confirmNewPassword }));
-            alert.success("Please login with New Password");
-            navigate('/');
+            dispatch(submitOTPStudent({ email, otp, newPassword, confirmNewPassword })).then(() => {
+              toast.success("Please login with New Password");
+              navigate('/');
+            }).finally(() => setLoading(false));
         }
         else if (user === "faculty")
         {
-            dispatch(submitOTPFaculty({ email, otp, newPassword, confirmNewPassword }));
-            alert.success("Please login with New Password");
-            navigate('/')
+            dispatch(submitOTPFaculty({ email, otp, newPassword, confirmNewPassword })).then(() => {
+              toast.success("Please login with New Password");
+              navigate('/')
+            }).finally(() => setLoading(false));
         }
-
     }
 
+    const activeStep = helper ? 1 : 0
+
     return(
-           <>
-           {
-               !helper?(
-      <Container>
-            <ProfileBox>
-                <ProfileHeader>
-                     Forgot Password
-                </ProfileHeader>
-                <ProfileForm encType='multiform/form-data' onSubmit={sendOtpHandler}>
-                    <ProfileEmail>
-                    <MailOutline/>
-                        <ProfileInput type="text" placeholder="Email"  onChange = {(e) => setEmail(e.target.value)} required name="email" value={email}/>
-                    </ProfileEmail>
-                    <ProfileButton type="submit">
-                        Submit
-                    </ProfileButton>
-                </ProfileForm>
-            </ProfileBox>
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2, position: 'relative' }}>
+        <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+          <Tooltip title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            <IconButton size="small" onClick={toggleTheme}>
+              {darkMode ? <LightModeIcon/> : <DarkModeIcon/>}
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <Container maxWidth="sm">
+          <Card sx={{ borderRadius: 3, boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="h5" fontWeight={700} textAlign="center" sx={{ mb: 1 }}>Forgot Password</Typography>
+              <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>Reset your {user} account password</Typography>
+
+              <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
+                <Step><StepLabel>Request OTP</StepLabel></Step>
+                <Step><StepLabel>Reset Password</StepLabel></Step>
+              </Stepper>
+
+              {!helper ? (
+                <Box component="form" onSubmit={sendOtpHandler}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start"><MailIcon color="primary" /></InputAdornment>
+                          )
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button type="submit" fullWidth variant="contained" startIcon={<SendIcon />} disabled={loading}>
+                        {loading ? 'Sending...' : 'Send OTP'}
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+              ) : (
+                <Box component="form" onSubmit={submitOtpHandler}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="OTP"
+                        required
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start"><OtpIcon color="primary" /></InputAdornment>
+                          )
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="New Password"
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start"><LockIcon color="primary" /></InputAdornment>
+                          )
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Confirm New Password"
+                        type="password"
+                        required
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start"><LockOpenIcon color="primary" /></InputAdornment>
+                          )
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button type="submit" fullWidth variant="contained" startIcon={<CheckIcon />} disabled={loading}>
+                        {loading ? 'Updating...' : 'Reset Password'}
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
         </Container>
-               ):(
-        <Container>
-            <ProfileBox>
-                <ProfileHeader>
-                     Forgot Password
-                </ProfileHeader>
-                <ProfileForm encType='multiform/form-data' onSubmit={submitOtpHandler}>
-                    <ProfilePhone>
-                        <Phone/>
-                        <ProfileInput type="text" placeholder="OTP" required  value={otp} onChange={(e) => setOtp(e.target.value)}/>
-                    </ProfilePhone>
-                    <ProfileName>
-                        <SupervisorAccount/>
-                        <ProfileInput type="password" placeholder="New Password" required  value={newPassword} onChange={(e) => setNewPassword(e.target.value)}/>
-                    </ProfileName>
-                    <ProfileName>
-                        <SupervisorAccount/>
-                        <ProfileInput type="password" placeholder="Confirm New Password" required  value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} />
-                    </ProfileName>
-                    <ProfileButton type="submit">
-                        Submit
-                    </ProfileButton>
-                </ProfileForm>
-            </ProfileBox>
-        </Container>
-               )
-           }
-           
-           </>
+      </Box>
     )
 }
 
