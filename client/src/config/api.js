@@ -1,20 +1,20 @@
 import axios from "axios";
 
-// Create axios instance with base configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-
+// Create an Axios instance WITHOUT a baseURL.
+// This is the most important change. It allows the proxy in your
+// package.json file to handle the requests correctly during development.
 const api = axios.create({
-  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Add request interceptor for debugging
+// Add a request interceptor for debugging (this is very useful)
 api.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    // The URL will now be relative, e.g., "/api/student/login"
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
@@ -22,7 +22,7 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Add a response interceptor for error handling (also useful)
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -34,4 +34,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-

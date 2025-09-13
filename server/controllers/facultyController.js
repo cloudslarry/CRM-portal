@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -22,6 +23,7 @@ const Subject = require("../models/Subject");
 const Faculty = require("../models/Faculty");
 const Attendance = require("../models/Attendance");
 const Mark = require("../models/Marks");
+const Notification = require("../models/Notification");
 
 exports.facultyLogin = async (req, res, next) => {
   try {
@@ -108,65 +110,152 @@ exports.fetchStudents = async (req, res, next) => {
 
 exports.markAttendance = async (req, res, next) => {
   try {
-    const { selectedStudents, subjectCode, department, year, section } =
-      req.body;
-
-    console.log(req.body);
-    const sub = await Subject.findOne({ subjectCode });
-
-    const allStudents = await Student.find({ department, year, section });
-
-    //Get students that did not attend
-    let filteredArr = allStudents.filter((item) => {
-      return selectedStudents.indexOf(item.id) === -1;
+    const { selectedStudents, subjectCode, department, year, section, date } = req.body;
+    
+    console.log('Attendance request received:', {
+      selectedStudents: selectedStudents?.length,
+      subjectCode,
+      department,
+      year,
+      section,
+      date
     });
 
-    //Mark attendance
-    for (let i = 0; i < filteredArr.length; i++) {
-      //get previous attendance record
-      const prev = await Attendance.findOne({
-        student: filteredArr[i]._id,
-        subject: sub._id,
-      });
-
-      if (!prev) {
-        const attendance = new Attendance({
-          student: filteredArr[i],
-          subject: sub._id,
-        });
-
-        attendance.totalLectures += 1;
-        await attendance.save();
-      } else {
-        prev.totalLectures += 1;
-        await prev.save();
-      }
+    // Validate required fields
+    if (!date) {
+      return res.status(400).json({ message: "Date is required" });
+    }
+    if (!subjectCode) {
+      return res.status(400).json({ message: "Subject code is required" });
+    }
+    if (!department || !year || !section) {
+      return res.status(400).json({ message: "Department, year, and section are required" });
+    }
+    if (!selectedStudents || !Array.isArray(selectedStudents) || selectedStudents.length === 0) {
+      return res.status(400).json({ message: "At least one student must be selected" });
     }
 
-    for (let j = 0; j < selectedStudents.length; j++) {
-      const prev = await Attendance.findOne({
-        student: selectedStudents[j],
-        subject: sub._id,
-      });
-      if (!prev) {
-        const attendance = new Attendance({
-          student: selectedStudents[j],
-          subject: sub._id,
-        });
+    const sub = await Subject.findOne({ subjectCode });
+    if (!sub) {
+      console.log('Subject not found:', subjectCode);
+      return res.status(404).json({ message: "Subject not found" });
+    }
+    console.log('Found subject:', sub.subjectCode, sub._id);
 
-        attendance.totalLectures += 1;
-        attendance.lecturesAttended += 1;
-        await attendance.save();
-      } else {
-        prev.totalLectures += 1;
-        prev.lecturesAttended += 1;
-        await prev.save();
-      }
+    const allStudents = await Student.find({ department, year, section });
+    if (allStudents.length === 0) {
+      console.log('No students found for:', { department, year, section });
+      return res.status(404).json({ message: "No students found for the selected criteria" });
+    }
+    console.log('Found students:', allStudents.length);
+
+    // Check for existing attendance for this subject and date
+    const attendanceDate = new Date(date);
+    const startOfDay = new Date(attendanceDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(attendanceDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingAttendance = await Attendance.find({
+      subject: sub._id,
+      date: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      },
+      'student': { $in: allStudents.map(s => s._id) }
+    }).select('student');
+
+    if (existingAttendance.length > 0) {
+      const existingStudentIds = existingAttendance.map(a => a.student.toString());
+      const duplicateStudents = allStudents
+        .filter(s => existingStudentIds.includes(s._id.toString()))
+        .map(s => s.registrationNumber);
+      
+      return res.status(400).json({ 
+        message: "Attendance already marked for some students on this date",
+        duplicateStudents
+      });
     }
 
-    res.status(200).json({ message: "Attendance marked" });
+    // Convert student IDs to ObjectId for comparison
+    const selectedStudentIds = selectedStudents.map(id => new mongoose.Types.ObjectId(id));
+    
+    // Mark attendance for present students
+    const attendanceRecords = selectedStudents.map(studentId => ({
+      student: new mongoose.Types.ObjectId(studentId),
+      subject: sub._id,
+      date: attendanceDate,
+      status: 'present',
+      markedAt: new Date()
+    }));
+    console.log('Created attendance records for present students:', attendanceRecords.length);
+
+    // Mark absent students
+    const absentStudents = allStudents
+      .filter(student => !selectedStudentIds.some(id => id.equals(student._id)))
+      .map(student => ({
+        student: student._id,
+        subject: sub._id,
+        date: attendanceDate,
+        status: 'absent',
+        markedAt: new Date()
+      }));
+    console.log('Created attendance records for absent students:', absentStudents.length);
+
+    // Save all attendance records
+    console.log('Saving attendance records:', attendanceRecords.length + absentStudents.length);
+    const savedRecords = await Attendance.insertMany([...attendanceRecords, ...absentStudents]);
+    console.log('Successfully saved:', savedRecords.length, 'attendance records');
+
+    const response = { 
+      message: `Attendance marked successfully for ${selectedStudents.length} students`,
+      totalStudents: allStudents.length,
+      presentCount: selectedStudents.length,
+      absentCount: allStudents.length - selectedStudents.length
+    };
+    console.log('Sending success response:', response);
+    res.status(200).json(response);
   } catch (err) {
-    return res.status(400).json({ message: "Error in marking attendance" });
+    console.error("Error in marking attendance:", err);
+    return res.status(500).json({ 
+      message: "Internal server error while marking attendance",
+      error: err.message 
+    });
+  }
+};
+
+// Test endpoint to verify attendance functionality
+exports.testAttendance = async (req, res, next) => {
+  try {
+    console.log('Testing attendance functionality...');
+    
+    // Check if we can find students and subjects
+    const students = await Student.find().limit(1);
+    const subjects = await Subject.find().limit(1);
+    const attendanceCount = await Attendance.countDocuments();
+    
+    res.status(200).json({
+      message: 'Attendance system test',
+      studentsFound: students.length,
+      subjectsFound: subjects.length,
+      totalAttendanceRecords: attendanceCount,
+      testStudent: students[0] ? {
+        id: students[0]._id,
+        name: students[0].name,
+        department: students[0].department
+      } : null,
+      testSubject: subjects[0] ? {
+        id: subjects[0]._id,
+        code: subjects[0].subjectCode,
+        name: subjects[0].subjectName
+      } : null
+    });
+  } catch (err) {
+    console.error('Error in testAttendance:', err);
+    res.status(500).json({ 
+      message: 'Test failed',
+      error: err.message 
+    });
   }
 };
 
@@ -182,11 +271,17 @@ exports.uploadMarks = async (req, res, next) => {
       req.body;
 
     const subject = await Subject.findOne({ subjectCode });
+    if (!subject) {
+      errors.subjectCode = "Subject not found";
+      return res.status(404).json(errors);
+    }
+    
     const alreadyMarked = await Mark.find({
       exam,
       department,
       section,
-      subjectCode: subject._id,
+      year,
+      subject: subject._id,
     });
 
     if (alreadyMarked.length !== 0) {
@@ -194,24 +289,35 @@ exports.uploadMarks = async (req, res, next) => {
       return res.status(400).json(errors);
     }
 
+    // Save marks for each student
+    let savedCount = 0;
     for (let i = 0; i < marks.length; i++) {
-      const newMarks = await new Mark({
+      const newMarks = new Mark({
         student: marks[i]._id,
         subject: subject._id,
         exam,
         department,
         section,
-
         marks: marks[i].value,
         totalMarks,
+        year,
       });
 
       await newMarks.save();
+      savedCount++;
     }
 
-    res.status(200).json({ message: "Marks uploaded successfully" });
+    res.status(200).json({ 
+      message: `Marks uploaded successfully for ${savedCount} students`,
+      savedCount,
+      totalStudents: marks.length 
+    });
   } catch (err) {
-    console.log("Error in uploading marks");
+    console.error("Error in uploading marks:", err);
+    return res.status(500).json({ 
+      message: "Internal server error while uploading marks",
+      error: err.message 
+    });
   }
 };
 
@@ -316,7 +422,7 @@ exports.postOTP = async (req, res, next) => {
     }
 
     let hashedPassword;
-    hashedPassword = await bcrypt.compare(newPassword, 10);
+    hashedPassword = await bcrypt.hash(newPassword, 10);
     faculty.password = hashedPassword;
     await faculty.save();
 
@@ -365,5 +471,194 @@ exports.updateProfile = async (req, res, next) => {
     });
   } catch (err) {
     console.log("Error in updating Profile", err.message);
+  }
+};
+
+// Get notifications for faculty
+exports.getNotifications = async (req, res, next) => {
+  try {
+    const facultyId = req.user.id;
+    const notifications = await Notification.find({
+      recipient: facultyId,
+      recipientType: 'faculty'
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      result: notifications
+    });
+  } catch (err) {
+    console.log("Error in getting notifications", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching notifications"
+    });
+  }
+};
+
+// Mark notification as read
+exports.markNotificationAsRead = async (req, res, next) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findByIdAndUpdate(
+      notificationId,
+      { isRead: true, readAt: new Date() },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Notification marked as read"
+    });
+  } catch (err) {
+    console.log("Error in marking notification as read", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error updating notification"
+    });
+  }
+};
+
+// Get faculty dashboard data
+exports.getDashboardData = async (req, res, next) => {
+  try {
+    const facultyId = req.user.id;
+    const { department } = req.user;
+
+    // Get total students in department
+    const totalStudents = await Student.countDocuments({ department });
+
+    // Get subjects taught by faculty
+    const subjects = await Subject.find({ department });
+
+    // Get recent attendance records
+    const recentAttendance = await Attendance.find()
+      .populate('subject')
+      .populate('student', 'name registrationNumber')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Get recent marks uploaded
+    const recentMarks = await Mark.find({ department })
+      .populate('subject')
+      .populate('student', 'name registrationNumber')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Get unread notifications count
+    const unreadNotifications = await Notification.countDocuments({
+      recipient: facultyId,
+      recipientType: 'faculty',
+      isRead: false
+    });
+
+    // Get attendance statistics
+    const attendanceStats = await Attendance.aggregate([
+      { $group: { _id: null, totalLectures: { $sum: "$totalLectures" }, totalAttended: { $sum: "$lecturesAttended" } } }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      result: {
+        totalStudents,
+        subjects: subjects.length,
+        recentAttendance,
+        recentMarks,
+        unreadNotifications,
+        attendanceStats: attendanceStats[0] || { totalLectures: 0, totalAttended: 0 },
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.log("Error in getting dashboard data", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard data"
+    });
+  }
+};
+
+// Get students by multiple criteria
+exports.getStudentsByCriteria = async (req, res, next) => {
+  try {
+    const { department, year, section, subjectCode } = req.body;
+    
+    let query = { department };
+    if (year) query.year = year;
+    if (section) query.section = section;
+
+    const students = await Student.find(query);
+    
+    if (students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No students found for the given criteria"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      result: students,
+      count: students.length
+    });
+  } catch (err) {
+    console.log("Error in getting students by criteria", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching students"
+    });
+  }
+};
+
+// Get attendance summary for a subject
+exports.getAttendanceSummary = async (req, res, next) => {
+  try {
+    const { subjectCode, department, year, section } = req.body;
+    
+    const subject = await Subject.findOne({ subjectCode });
+    if (!subject) {
+      return res.status(404).json({
+        success: false,
+        message: "Subject not found"
+      });
+    }
+
+    const attendanceRecords = await Attendance.find({ subject: subject._id })
+      .populate('student', 'name registrationNumber')
+      .populate('subject', 'subjectCode subjectName');
+
+    const summary = attendanceRecords.map(record => ({
+      student: {
+        name: record.student.name,
+        registrationNumber: record.student.registrationNumber
+      },
+      subject: {
+        code: record.subject.subjectCode,
+        name: record.subject.subjectName
+      },
+      attendancePercentage: ((record.lecturesAttended / record.totalLectures) * 100).toFixed(2),
+      totalLectures: record.totalLectures,
+      lecturesAttended: record.lecturesAttended,
+      absentLectures: record.totalLectures - record.lecturesAttended
+    }));
+
+    res.status(200).json({
+      success: true,
+      result: summary,
+      count: summary.length
+    });
+  } catch (err) {
+    console.log("Error in getting attendance summary", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching attendance summary"
+    });
   }
 };

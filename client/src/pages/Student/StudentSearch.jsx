@@ -1,16 +1,19 @@
 import React,{useState,useEffect} from 'react'
 import {useSelector,useDispatch} from 'react-redux'
-import {DataGrid} from '@material-ui/data-grid'
+import {DataGrid} from '@mui/x-data-grid'
 import {Link,useNavigate} from 'react-router-dom';
 
-import axios from 'axios';
+import api from '../../config/api';
+import { getAllStudents } from '../../redux/actions/studentAction';
 
 import styled from 'styled-components'
 import StudentNavbar from '../../components/StudentNavbar'
+import StudentLayout from '../../components/StudentLayout'
+import { Box, Container, Card, CardContent, Typography, Grid, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material'
 
-import {Person,CalendarToday,Search,Class,Explore} from '@material-ui/icons'
+import {Person,CalendarToday,Search,Class,Explore} from '@mui/icons-material'
 
-const Container = styled.div` 
+const ContainerDiv = styled.div` 
 width:100%;
 box-sizing:border-box;
 background-color: rgb(255, 255, 255);
@@ -76,26 +79,12 @@ margin: 2rem;
 }
 `
 
-const Button = styled.button` 
-    border-radius: 10px;
-    border:none;
-    background-color: #0077b6;
-    font: 400 1vmax;
-    color: white;
-    text-decoration: none;
-    padding: 0.5vmax;
-    width: 30%;
-    margin: 4vmax;
-    text-align: center;
-    cursor:pointer;
-`
-
 
 const StudentSearch = () => {
 
     const student = useSelector((store) => store.student);
     const navigate = useNavigate();
-    
+    const dispatch = useDispatch();
 
     const [department, setDepartment] = useState("")
     const [year, setYear] = useState("")
@@ -104,14 +93,17 @@ const StudentSearch = () => {
 
     const fetchStudents = async() => {
         try{
-            const {data} = await axios.post('http://localhost:3000/api/student/getAllStudents',{
+            console.log('StudentSearch: Fetching students with criteria:', {department, year, section});
+            const {data} = await api.post('/api/student/getAllStudents',{
                 department,year,section
             })
 
+            console.log('StudentSearch: API response:', data);
             setResult(data.result);
 
         }catch(err)
         {
+            console.error('StudentSearch: Error fetching students:', err);
             alert("Something went wrong..");
         }
     }
@@ -125,7 +117,7 @@ const StudentSearch = () => {
         {field:"visit",headerName:"Visit",flex:0.2,type:"number",sortable:"false",renderCell:(params) => {
             return(
                 <>
-                <Link to={`/profile/${params.getValue(params.id,"id")}`}>
+                <Link to={`/profile/${params.id}`}>
                  <Explore style={{color:"#0077b6"}}/>
                 </Link>
                 </>
@@ -154,57 +146,59 @@ const StudentSearch = () => {
         })
     })
 
+    console.log('StudentSearch: Result data:', result);
+    console.log('StudentSearch: Rows data:', rows);
+
     const formHandler = (e) => {
         e.preventDefault();
         fetchStudents();
     }
 
   return (
-    <>
-    <StudentNavbar/>
-    <Container>
-        <Form onSubmit={formHandler}>
-            <Heading>Search Students</Heading>
-            <FormItemContainer>
-            <FormItem>
-                <Person/>
-                <select onChange={(e) => setDepartment(e.target.value)}>
-                    <option>Department</option>
-                    <option>C.S.E</option>
-                    <option>E.C.E</option>
-                    <option>I.T</option>
-                    <option>Civil</option>
-                    <option>Mechanical</option>
-                </select>
-            </FormItem>
-            <FormItem>
-                <CalendarToday/>
-                <select onChange={(e) => setYear(e.target.value)}>
-                    <option>Year</option>
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                    <option>4</option>
-                </select>
-            </FormItem>
-            <FormItem>
-                <Class/>
-                <select onChange={(e) => setSection(e.target.value)}>
-                    <option>Section</option>
-                    <option>A</option>
-                    <option>B</option>
-                    <option>C</option>
-                    <option>D</option>
-                </select>
-            </FormItem>
-            </FormItemContainer>
-            <Button type="submit">
-                Search
-            </Button>
-        </Form>
-        <DataGrid rows={rows} columns={columns} pageSize={5} autoHeight/>
-    </Container>
-    </>
+    <StudentLayout title="Search Students">
+      <Container maxWidth="lg">
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Department</InputLabel>
+                  <Select value={department} label="Department" onChange={(e) => setDepartment(e.target.value)}>
+                    {['C.S.E','E.C.E','I.T','Civil','Mechanical'].map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Year</InputLabel>
+                  <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)}>
+                    {[1,2,3,4].map(y => <MenuItem key={y} value={String(y)}>{y}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Section</InputLabel>
+                  <Select value={section} label="Section" onChange={(e) => setSection(e.target.value)}>
+                    {['A','B','C','D'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <Button variant="contained" onClick={formHandler} startIcon={<Search/>}>Search</Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent sx={{ p: 0 }}>
+            <Box sx={{ height: 560, width: '100%' }}>
+              <DataGrid rows={rows} columns={columns} pageSize={10} rowsPerPageOptions={[5,10,25]} disableSelectionOnClick />
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+    </StudentLayout>
   )
 }
 

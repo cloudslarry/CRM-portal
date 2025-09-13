@@ -11,6 +11,7 @@ const Subject = require("../models/Subject");
 const Attendance = require("../models/Attendance");
 const Message = require("../models/Message");
 const Mark = require("../models/Marks");
+const Notification = require("../models/Notification");
 
 //File Handler
 const bufferConversion = require("../utils/bufferConversion");
@@ -54,32 +55,62 @@ exports.studentLogin = async (req, res, next) => {
 
 exports.checkAttendance = async (req, res, next) => {
   try {
-    // console.log(req.user);
     const studentId = req.user._id;
-    const attendance = await Attendance.find({ student: studentId }).populate(
-      "subject"
-    );
-    if (!attendance) {
-      res.status(400).json({ message: "Attendance not found" });
+    const { date } = req.query;
+
+    // Optional filter by specific date (YYYY-MM-DD)
+    let dateFilter = {};
+    if (date) {
+      const input = new Date(date);
+      if (!isNaN(input.getTime())) {
+        const start = new Date(input);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(input);
+        end.setHours(23, 59, 59, 999);
+        dateFilter = { date: { $gte: start, $lte: end } };
+      }
     }
 
-    res.status(200).json({
-      result: attendance.map((att) => {
-        let res = {};
-        res.attendance = (
-          (att.lecturesAttended / att.totalLectures) *
-          100
-        ).toFixed(2);
-        res.subjectCode = att.subject.subjectCode;
-        res.subjectName = att.subject.subjectName;
-        res.maxHours = att.subject.totalLectures;
-        res.absentHours = att.totalLectures - att.lecturesAttended;
-        res.totalLectures = att.totalLectures;
-        return res;
-      }),
-    });
+    // Aggregate daily attendance into per-subject totals
+    const aggregated = await Attendance.aggregate([
+      { $match: { student: req.user._id, ...dateFilter } },
+      { $group: {
+          _id: "$subject",
+          totalLectures: { $sum: 1 },
+          lecturesAttended: { $sum: { $cond: [{ $eq: ["$status", "present"] }, 1, 0] } }
+        }
+      },
+      { $lookup: { from: "subjects", localField: "_id", foreignField: "_id", as: "subject" } },
+      { $unwind: "$subject" },
+      { $project: {
+          _id: 0,
+          subjectCode: "$subject.subjectCode",
+          subjectName: "$subject.subjectName",
+          totalLectures: 1,
+          lecturesAttended: 1,
+          attendance: { $cond: [
+            { $gt: ["$totalLectures", 0] },
+            { $multiply: [{ $divide: ["$lecturesAttended", "$totalLectures"] }, 100] },
+            0
+          ] }
+        }
+      }
+    ]);
+
+    // Format numbers to two decimals where needed
+    const result = aggregated.map(att => ({
+      subjectCode: att.subjectCode,
+      subjectName: att.subjectName,
+      attendance: att.attendance.toFixed(2),
+      maxHours: att.totalLectures,
+      absentHours: att.totalLectures - att.lecturesAttended,
+      totalLectures: att.totalLectures,
+    }));
+
+    return res.status(200).json({ result });
   } catch (err) {
     console.log("Error in getting attending details", err.message);
+    return res.status(500).json({ message: "Error fetching attendance" });
   }
 };
 
@@ -88,10 +119,14 @@ exports.getAllStudents = async (req, res, next) => {
     const { department, year, section } = req.body;
     const students = await Student.find({ department, year, section });
     if (students.length === 0) {
-      return res.status(400).json({ message: "No student found" });
+      return res.status(404).json({ message: "No students found for the given criteria" });
     }
 
-    return res.status(200).json({ result: students });
+    return res.status(200).json({ 
+      success: true,
+      result: students,
+      count: students.length 
+    });
   } catch (err) {
     return res.status(400).json({ message: err.message });
   }
@@ -190,12 +225,12 @@ exports.forgotPassword = async (req, res, next) => {
 
     const helper = async () => {
       student.otp = "";
-      await Student.save();
+      await student.save();
     };
 
     setTimeout(function () {
       helper();
-    }, 3000);
+    }, 300000); // 5 minutes timeout
   } catch (err) {
     console.log("Error in sending email", err.message);
   }
@@ -305,9 +340,13 @@ exports.getAllSubjects = async (req, res, next) => {
 exports.getAllMarks = async (req, res, next) => {
   try {
     const { department, year, id } = req.user;
-    const getMarks = await Mark.find({ department, student: id }).populate(
+    console.log('StudentController: Getting marks for:', { department, year, id });
+    
+    const getMarks = await Mark.find({ department, year, student: id }).populate(
       "subject"
     );
+    
+    console.log('StudentController: Found marks:', getMarks.length);
 
     const UnitTest1 = getMarks.filter((obj) => {
       return obj.exam === "Unit Test 1";
@@ -454,5 +493,114 @@ exports.updateProfile = async (req, res, next) => {
     });
   } catch (err) {
     console.log("Error in updating Profile", err.message);
+  }
+};
+
+// Get notifications for student
+exports.getNotifications = async (req, res, next) => {
+  try {
+    const studentId = req.user._id;
+    const notifications = await Notification.find({
+      recipient: studentId,
+      recipientType: 'student'
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      result: notifications
+    });
+  } catch (err) {
+    console.log("Error in getting notifications", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching notifications"
+    });
+  }
+};
+
+// Mark notification as read
+exports.markNotificationAsRead = async (req, res, next) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findByIdAndUpdate(
+      notificationId,
+      { isRead: true, readAt: new Date() },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Notification marked as read"
+    });
+  } catch (err) {
+    console.log("Error in marking notification as read", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error updating notification"
+    });
+  }
+};
+
+// Get student dashboard data
+exports.getDashboardData = async (req, res, next) => {
+  try {
+    const studentId = req.user._id;
+    const { department, year } = req.user;
+
+    // Get attendance summary
+    const attendance = await Attendance.find({ student: studentId }).populate('subject');
+    const attendanceSummary = attendance.map(att => ({
+      subjectCode: att.subject.subjectCode,
+      subjectName: att.subject.subjectName,
+      attendancePercentage: ((att.lecturesAttended / att.totalLectures) * 100).toFixed(2),
+      totalLectures: att.totalLectures,
+      lecturesAttended: att.lecturesAttended
+    }));
+
+    // Get recent marks
+    const recentMarks = await Mark.find({ student: studentId })
+      .populate('subject')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Get unread notifications count
+    const unreadNotifications = await Notification.countDocuments({
+      recipient: studentId,
+      recipientType: 'student',
+      isRead: false
+    });
+
+    // Get recent messages count
+    const recentMessages = await Message.countDocuments({
+      $or: [
+        { senderId: studentId },
+        { receiverId: studentId }
+      ],
+      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
+    });
+
+    res.status(200).json({
+      success: true,
+      result: {
+        attendanceSummary,
+        recentMarks,
+        unreadNotifications,
+        recentMessages,
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.log("Error in getting dashboard data", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard data"
+    });
   }
 };

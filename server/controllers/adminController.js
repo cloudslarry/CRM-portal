@@ -14,6 +14,8 @@ const Subject = require("../models/Subject");
 const Student = require("../models/Student");
 const Faculty = require("../models/Faculty");
 const Admin = require("../models/Admin");
+const Notification = require("../models/Notification");
+const Applicant = require("../models/Applicant");
 
 //Config
 const keys = require("../config/key");
@@ -166,7 +168,18 @@ exports.addStudent = async (req, res, next) => {
       section,
       studentMobileNumber,
       fatherMobileNumber,
+      gender,
     } = req.body;
+
+    // Convert year string to number if needed
+    let yearNumber = year;
+    if (typeof year === 'string') {
+      if (year.includes('1st')) yearNumber = 1;
+      else if (year.includes('2nd')) yearNumber = 2;
+      else if (year.includes('3rd')) yearNumber = 3;
+      else if (year.includes('4th')) yearNumber = 4;
+      else if (year.includes('5th')) yearNumber = 5;
+    }
 
     const student = await Student.findOne({ email });
     if (student) {
@@ -176,18 +189,20 @@ exports.addStudent = async (req, res, next) => {
 
     const avatarUrl = gravatar.url(email, { s: "200", r: "pg", d: "mm" });
     let departmentHelper;
-    if (department === "C.S.E") {
+    if (department === "C.S.E" || department === "Computer Science") {
       departmentHelper = "01";
-    } else if (department === "E.C.E") {
+    } else if (department === "E.C.E" || department === "Electronics & Communication") {
       departmentHelper = "02";
-    } else if (department === "I.T") {
+    } else if (department === "I.T" || department === "Information Technology") {
       departmentHelper = "03";
-    } else if (department === "Mechanical") {
+    } else if (department === "Mechanical" || department === "Mechanical Engineering") {
       departmentHelper = "04";
-    } else if (department === "Civil") {
+    } else if (department === "Civil" || department === "Civil Engineering") {
       departmentHelper = "05";
-    } else {
+    } else if (department === "E.E.E" || department === "Electrical Engineering") {
       departmentHelper = "06";
+    } else {
+      departmentHelper = "00";
     }
 
     const students = await Student.find({ department });
@@ -200,8 +215,10 @@ exports.addStudent = async (req, res, next) => {
       helper = students.length.toString();
     }
 
+    // Use env default or safe fallback for initial password
+    const plainStudentPassword = process.env.STUDENT_PASSWORD || "student123";
     let hashedPassword;
-    hashedPassword = await bcrypt.hash(process.env.STUDENT_PASSWORD, 10);
+    hashedPassword = await bcrypt.hash(plainStudentPassword, 10);
     var date = new Date();
     const batch = date.getFullYear();
 
@@ -212,12 +229,13 @@ exports.addStudent = async (req, res, next) => {
       name,
       email,
       password: hashedPassword,
-      year,
+      year: yearNumber,
       fatherName,
       registrationNumber,
       department,
       section,
       batch,
+      gender,
       avatar: {
         public_id: "123",
         url: avatarUrl,
@@ -228,16 +246,43 @@ exports.addStudent = async (req, res, next) => {
 
     await newStudent.save();
 
-    const subjects = await Subject.find({ year });
+    const subjects = await Subject.find({ year: yearNumber });
     if (subjects.length !== 0) {
       for (var i = 0; i < subjects.length; i++) {
         newStudent.subjects.push(subjects[i]._id);
       }
     }
     await newStudent.save();
-    res.status(200).json({ result: newStudent });
+
+    // Automatically assign student to hostel and room
+    try {
+      await assignStudentToHostel(newStudent._id);
+    } catch (hostelError) {
+      console.log("Warning: Could not assign student to hostel:", hostelError.message);
+      // Continue with student creation even if hostel assignment fails
+    }
+
+    res.status(200).json({ 
+      success: true,
+      message: "Student added successfully",
+      result: {
+        _id: newStudent._id,
+        name: newStudent.name,
+        email: newStudent.email,
+        registrationNumber: newStudent.registrationNumber,
+        department: newStudent.department,
+        year: newStudent.year,
+        section: newStudent.section
+      },
+      defaultPassword: process.env.STUDENT_PASSWORD ? undefined : plainStudentPassword
+    });
   } catch (err) {
-    console.log("Error in student registration", err.message);
+    console.log("Error in student registration:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error in student registration", 
+      error: err.message 
+    });
   }
 };
 
@@ -264,18 +309,20 @@ exports.addFaculty = async (req, res, next) => {
     });
 
     let departmentHelper;
-    if (department === "C.S.E") {
+    if (department === "C.S.E" || department === "Computer Science") {
       departmentHelper = "01";
-    } else if (department === "E.C.E") {
+    } else if (department === "E.C.E" || department === "Electronics & Communication") {
       departmentHelper = "02";
-    } else if (department === "I.T") {
+    } else if (department === "I.T" || department === "Information Technology") {
       departmentHelper = "03";
-    } else if (department === "Mechanical") {
+    } else if (department === "Mechanical" || department === "Mechanical Engineering") {
       departmentHelper = "04";
-    } else if (department === "Civil") {
+    } else if (department === "Civil" || department === "Civil Engineering") {
       departmentHelper = "05";
-    } else {
+    } else if (department === "E.E.E" || department === "Electrical Engineering") {
       departmentHelper = "06";
+    } else {
+      departmentHelper = "00";
     }
 
     const faculties = await Faculty.find({ department });
@@ -312,9 +359,12 @@ exports.addFaculty = async (req, res, next) => {
     await newFaculty.save();
     res.status(200).json({ result: newFaculty });
   } catch (err) {
-    res
-      .status(400)
-      .json({ message: `Error in adding new Faculty", ${err.message}` });
+    console.log("Error in adding new faculty:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error in adding new faculty", 
+      error: err.message 
+    });
   }
 };
 
@@ -322,85 +372,241 @@ exports.addSubject = async (req, res, next) => {
   try {
     const { errors, isValid } = validateSubjectRegisterInput(req.body);
     if (!isValid) {
-      return res.status(400).json(errors);
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors
+      });
     }
 
-    const { totalLectures, department, subjectCode, subjectName, year } =
-      req.body;
-    const subject = await Subject.findOne({ subjectCode });
+    const { totalLectures, department, subjectCode, subjectName, year } = req.body;
+    
+    // Convert year to string format for consistency with Subject model
+    let yearString = year;
+    if (typeof year === 'number') {
+      yearString = `${year}${year === 1 ? 'st' : year === 2 ? 'nd' : year === 3 ? 'rd' : 'th'} Year`;
+    } else if (typeof year === 'string' && !year.includes('Year')) {
+      const yearNum = parseInt(year);
+      yearString = `${yearNum}${yearNum === 1 ? 'st' : yearNum === 2 ? 'nd' : yearNum === 3 ? 'rd' : 'th'} Year`;
+    }
+    
+    console.log('Adding subject with year:', yearString);
+    
+    // Check if subject already exists
+    const existingSubject = await Subject.findOne({ 
+      $or: [
+        { subjectCode: subjectCode },
+        { subjectName: subjectName, department: department, year: yearString }
+      ]
+    });
 
-    if (subject) {
-      errors.subjectCode = "Given Subject is already added";
-      return res.status(400).json(errors);
+    if (existingSubject) {
+      return res.status(400).json({
+        success: false,
+        message: "Subject already exists",
+        errors: {
+          subjectCode: existingSubject.subjectCode === subjectCode ? "Subject code already exists" : "Subject with this name already exists in this department and year"
+        }
+      });
     }
 
+    // Create new subject
     const newSubject = await new Subject({
-      totalLectures,
+      totalLectures: parseInt(totalLectures),
       department,
       subjectCode,
       subjectName,
-      year,
+      year: yearString,
     });
     await newSubject.save();
 
-    const students = await Student.find({ department, year });
-    if (students.length === 0) {
-      errors.department = "No branch found for given subject";
-      return res.status(400).json(errors);
-    } else {
-      for (var i = 0; i < students.length; i++) {
-        students[i].subjects.push(newSubject._id);
-        await students[i].save();
+    console.log('Subject created successfully:', newSubject);
+
+    // Find students in the same department and year
+    const students = await Student.find({ 
+      department, 
+      year: typeof year === 'number' ? year : parseInt(year)
+    });
+    
+    console.log(`Found ${students.length} students for department: ${department}, year: ${year}`);
+
+    // Add subject to students' subject list
+    if (students.length > 0) {
+      for (let i = 0; i < students.length; i++) {
+        if (!students[i].subjects.includes(newSubject._id)) {
+          students[i].subjects.push(newSubject._id);
+          await students[i].save();
+        }
       }
-      res.status(200).json({ newSubject });
+      console.log(`Added subject to ${students.length} students`);
     }
+
+    res.status(200).json({ 
+      success: true,
+      message: "Subject added successfully",
+      result: newSubject,
+      studentsAffected: students.length
+    });
   } catch (err) {
-    console.log(`Error in adding new subject", ${err.message}`);
+    console.log("Error in adding new subject:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error in adding new subject", 
+      error: err.message 
+    });
   }
 };
 
 exports.getAllStudents = async (req, res, next) => {
   try {
     const students = await Student.find();
-    if (students.length === 0) {
-      return res.status(404).json({ message: "No students found" });
-    }
-
+    // Always return 200 with an array, even when empty, to simplify client handling
     res.status(200).json({ result: students });
   } catch (err) {
-    res
-      .status(400)
-      .json({ message: `Error in getting all students", ${err.message}` });
+    console.log("Error in getting all students:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching all students", 
+      error: err.message 
+    });
+  }
+};
+
+// Delete single student
+exports.deleteStudent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Student.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+    return res.status(200).json({ success: true, message: "Student deleted" });
+  } catch (err) {
+    console.log("Error in deleting student:", err.message);
+    return res.status(500).json({ success: false, message: "Error deleting student", error: err.message });
   }
 };
 
 exports.getAllFaculty = async (req, res, next) => {
   try {
     const faculties = await Faculty.find({});
-    if (faculties.length === 0) {
-      return res.status(404).json({ message: "No Record Found" });
-    }
+    // Always return 200 with an array, even when empty, to simplify client handling
     res.status(200).json({ result: faculties });
   } catch (err) {
-    res
-      .status(400)
-      .json({ message: `Error in getting all faculties", ${err.message}` });
+    console.log("Error in getting all faculties:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching all faculties", 
+      error: err.message 
+    });
+  }
+};
+
+// Get single faculty by id
+exports.getFacultyById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const faculty = await Faculty.findById(id);
+    if (!faculty) {
+      return res.status(404).json({ success: false, message: "Faculty not found" });
+    }
+    return res.status(200).json({ success: true, result: faculty });
+  } catch (err) {
+    console.log("Error in getting faculty by id:", err.message);
+    return res.status(500).json({ success: false, message: "Error fetching faculty", error: err.message });
+  }
+};
+
+// Update faculty details
+exports.updateFaculty = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updates = (({ name, email, designation, department, facultyMobileNumber }) => ({ name, email, designation, department, facultyMobileNumber }))(req.body);
+
+    const faculty = await Faculty.findById(id);
+    if (!faculty) {
+      return res.status(404).json({ success: false, message: "Faculty not found" });
+    }
+
+    if (updates.email && updates.email !== faculty.email) {
+      const existing = await Faculty.findOne({ email: updates.email });
+      if (existing) {
+        return res.status(400).json({ success: false, message: "Email already in use" });
+      }
+    }
+
+    Object.keys(updates).forEach((key) => {
+      if (typeof updates[key] !== 'undefined') {
+        faculty[key] = updates[key];
+      }
+    });
+
+    await faculty.save();
+    return res.status(200).json({ success: true, message: "Faculty updated", result: faculty });
+  } catch (err) {
+    console.log("Error in updating faculty:", err.message);
+    return res.status(500).json({ success: false, message: "Error updating faculty", error: err.message });
+  }
+};
+
+// Delete single faculty
+exports.deleteFaculty = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Faculty.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Faculty not found" });
+    }
+    return res.status(200).json({ success: true, message: "Faculty deleted" });
+  } catch (err) {
+    console.log("Error in deleting faculty:", err.message);
+    return res.status(500).json({ success: false, message: "Error deleting faculty", error: err.message });
+  }
+};
+
+// Bulk delete faculties
+exports.bulkDeleteFaculty = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: "No faculty ids provided" });
+    }
+    const result = await Faculty.deleteMany({ _id: { $in: ids } });
+    return res.status(200).json({ success: true, message: "Faculties deleted", deletedCount: result.deletedCount });
+  } catch (err) {
+    console.log("Error in bulk deleting faculty:", err.message);
+    return res.status(500).json({ success: false, message: "Error bulk deleting faculty", error: err.message });
   }
 };
 
 exports.getAllSubjects = async (req, res, next) => {
   try {
-    const allSubjects = await Subject.find({});
-    if (!allSubjects) {
-      return res
-        .status(404)
-        .json({ message: "You havent registered any subject yet." });
+    console.log('Fetching all subjects...');
+    const allSubjects = await Subject.find({}).sort({ department: 1, year: 1, subjectName: 1 });
+    
+    console.log(`Found ${allSubjects.length} subjects`);
+    
+    if (allSubjects.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No subjects found",
+        result: []
+      });
     }
-    res.status(200).json(allSubjects);
+    
+    res.status(200).json({
+      success: true,
+      message: "Subjects fetched successfully",
+      result: allSubjects,
+      count: allSubjects.length
+    });
   } catch (err) {
-    res
-      .status(400)
-      .json({ message: `Error in getting all Subjects", ${err.message}` });
+    console.log("Error in getting all subjects:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching all subjects", 
+      error: err.message 
+    });
   }
 };
 
@@ -410,7 +616,12 @@ exports.getStudents = async (req, res, next) => {
     const allStudents = await Student.find({ department, year });
     res.status(200).json({ result: allStudents });
   } catch (err) {
-    console.log("Error in gettting all students", err.message);
+    console.log("Error in getting all students", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching students", 
+      error: err.message 
+    });
   }
 };
 
@@ -420,7 +631,12 @@ exports.getFaculty = async (req, res, next) => {
     const allFaculties = await Faculty.find({ department });
     res.status(200).json({ result: allFaculties });
   } catch (err) {
-    console.log("Error in gettting all faculties", err.message);
+    console.log("Error in getting all faculties", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching faculties", 
+      error: err.message 
+    });
   }
 };
 
@@ -430,7 +646,188 @@ exports.getSubjects = async (req, res, next) => {
     const allSubjects = await Subject.find({ department, year });
     res.status(200).json({ result: allSubjects });
   } catch (err) {
-    console.log("Error in gettting all students", err.message);
+    console.log("Error in getting all subjects", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching subjects", 
+      error: err.message 
+    });
+  }
+};
+
+// Test statistics endpoint (no authentication required)
+exports.testStatistics = async (req, res, next) => {
+  try {
+    // Get counts from database
+    const totalStudents = await Student.countDocuments();
+    const totalFaculty = await Faculty.countDocuments();
+    const totalSubjects = await Subject.countDocuments();
+    
+    // Get unique departments count
+    const departments = await Student.distinct('department');
+    const totalDepartments = departments.length;
+
+    console.log("Test - Database Statistics:", {
+      totalStudents,
+      totalFaculty,
+      totalSubjects,
+      totalDepartments,
+      departments
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Test statistics endpoint working",
+      statistics: {
+        totalStudents,
+        facultyMembers: totalFaculty,
+        subjects: totalSubjects,
+        departments: totalDepartments
+      }
+    });
+  } catch (err) {
+    console.log("Error in test statistics", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching test statistics",
+      error: err.message
+    });
+  }
+};
+
+// Get comprehensive dashboard statistics
+exports.getStatistics = async (req, res, next) => {
+  try {
+    console.log("Fetching database statistics...");
+    
+    // Get basic counts from database
+    const totalStudents = await Student.countDocuments();
+    const totalFaculty = await Faculty.countDocuments();
+    const totalSubjects = await Subject.countDocuments();
+    const totalAdmins = await Admin.countDocuments();
+    
+    // Get unique departments count from students
+    const studentDepartments = await Student.distinct('department');
+    const facultyDepartments = await Faculty.distinct('department');
+    const allDepartments = [...new Set([...studentDepartments, ...facultyDepartments])];
+    const totalDepartments = allDepartments.length;
+
+    // Get additional statistics
+    const studentsByYear = await Student.aggregate([
+      { $group: { _id: "$year", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const studentsByDepartment = await Student.aggregate([
+      { $group: { _id: "$department", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    const facultyByDepartment = await Faculty.aggregate([
+      { $group: { _id: "$department", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    const subjectsByYear = await Subject.aggregate([
+      { $group: { _id: "$year", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const statistics = {
+      // Main counts
+      totalStudents,
+      totalFaculty,
+      totalSubjects,
+      totalAdmins,
+      totalDepartments,
+      
+      // Detailed breakdowns
+      studentsByYear,
+      studentsByDepartment,
+      facultyByDepartment,
+      subjectsByYear,
+      
+      // Department list
+      departments: allDepartments,
+      
+      // Timestamp
+      lastUpdated: new Date().toISOString()
+    };
+
+    console.log("Database Statistics Retrieved:", {
+      totalStudents,
+      totalFaculty,
+      totalSubjects,
+      totalAdmins,
+      totalDepartments,
+      departments: allDepartments
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Statistics retrieved successfully",
+      statistics: statistics
+    });
+  } catch (err) {
+    console.error("Error in getting statistics:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching statistics",
+      error: err.message
+    });
+  }
+};
+
+// Update admin password
+exports.adminUpdatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const adminId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password and new password are required"
+      });
+    }
+
+    // Find admin by ID
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, admin.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect"
+      });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    admin.password = hashedNewPassword;
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully"
+    });
+
+  } catch (err) {
+    console.log("Error in updating admin password:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error updating password",
+      error: err.message
+    });
   }
 };
 
@@ -451,7 +848,18 @@ exports.addStudentDirect = async (req, res, next) => {
       section,
       studentMobileNumber,
       fatherMobileNumber,
+      gender,
     } = req.body;
+
+    // Convert year string to number if needed
+    let yearNumber = year;
+    if (typeof year === 'string') {
+      if (year.includes('1st')) yearNumber = 1;
+      else if (year.includes('2nd')) yearNumber = 2;
+      else if (year.includes('3rd')) yearNumber = 3;
+      else if (year.includes('4th')) yearNumber = 4;
+      else if (year.includes('5th')) yearNumber = 5;
+    }
 
     const student = await Student.findOne({ email });
     if (student) {
@@ -463,18 +871,20 @@ exports.addStudentDirect = async (req, res, next) => {
 
     const avatarUrl = gravatar.url(email, { s: "200", r: "pg", d: "mm" });
     let departmentHelper;
-    if (department === "C.S.E") {
+    if (department === "C.S.E" || department === "Computer Science") {
       departmentHelper = "01";
-    } else if (department === "E.C.E") {
+    } else if (department === "E.C.E" || department === "Electronics & Communication") {
       departmentHelper = "02";
-    } else if (department === "I.T") {
+    } else if (department === "I.T" || department === "Information Technology") {
       departmentHelper = "03";
-    } else if (department === "Mechanical") {
+    } else if (department === "Mechanical" || department === "Mechanical Engineering") {
       departmentHelper = "04";
-    } else if (department === "Civil") {
+    } else if (department === "Civil" || department === "Civil Engineering") {
       departmentHelper = "05";
-    } else {
+    } else if (department === "E.E.E" || department === "Electrical Engineering") {
       departmentHelper = "06";
+    } else {
+      departmentHelper = "00";
     }
 
     const students = await Student.find({ department });
@@ -487,8 +897,10 @@ exports.addStudentDirect = async (req, res, next) => {
       helper = students.length.toString();
     }
 
+    // Use env default or safe fallback for initial password
+    const plainStudentPassword = process.env.STUDENT_PASSWORD || "student123";
     let hashedPassword;
-    hashedPassword = await bcrypt.hash(process.env.STUDENT_PASSWORD, 10);
+    hashedPassword = await bcrypt.hash(plainStudentPassword, 10);
     var date = new Date();
     const batch = date.getFullYear();
 
@@ -499,12 +911,13 @@ exports.addStudentDirect = async (req, res, next) => {
       name,
       email,
       password: hashedPassword,
-      year,
+      year: yearNumber,
       fatherName,
       registrationNumber,
       department,
       section,
       batch,
+      gender,
       avatar: {
         public_id: "123",
         url: avatarUrl,
@@ -515,13 +928,21 @@ exports.addStudentDirect = async (req, res, next) => {
 
     await newStudent.save();
 
-    const subjects = await Subject.find({ year });
+    const subjects = await Subject.find({ year: yearNumber });
     if (subjects.length !== 0) {
       for (var i = 0; i < subjects.length; i++) {
         newStudent.subjects.push(subjects[i]._id);
       }
     }
     await newStudent.save();
+
+    // Automatically assign student to hostel and room
+    try {
+      await assignStudentToHostel(newStudent._id);
+    } catch (hostelError) {
+      console.log("Warning: Could not assign student to hostel:", hostelError.message);
+      // Continue with student creation even if hostel assignment fails
+    }
     
     res.status(200).json({ 
       success: true,
@@ -533,13 +954,520 @@ exports.addStudentDirect = async (req, res, next) => {
         department: newStudent.department,
         year: newStudent.year,
         section: newStudent.section
-      }
+      },
+      defaultPassword: process.env.STUDENT_PASSWORD ? undefined : plainStudentPassword
     });
   } catch (err) {
     console.log("Error in student registration", err.message);
     res.status(500).json({
       success: false,
       message: "Internal server error",
+      error: err.message
+    });
+  }
+};
+
+// Get notifications for admin
+exports.getNotifications = async (req, res, next) => {
+  try {
+    const adminId = req.user.id;
+    const notifications = await Notification.find({
+      recipient: adminId,
+      recipientType: 'admin'
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      result: notifications
+    });
+  } catch (err) {
+    console.log("Error in getting notifications", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching notifications"
+    });
+  }
+};
+
+// Mark notification as read
+exports.markNotificationAsRead = async (req, res, next) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findByIdAndUpdate(
+      notificationId,
+      { isRead: true, readAt: new Date() },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Notification marked as read"
+    });
+  } catch (err) {
+    console.log("Error in marking notification as read", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error updating notification"
+    });
+  }
+};
+
+// Create notification
+exports.createNotification = async (req, res, next) => {
+  try {
+    const { title, message, type, recipientType, recipient, relatedEntity, relatedEntityType } = req.body;
+
+    const notification = new Notification({
+      title,
+      message,
+      type: type || 'info',
+      recipientType,
+      recipient,
+      relatedEntity,
+      relatedEntityType
+    });
+
+    await notification.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Notification created successfully",
+      result: notification
+    });
+  } catch (err) {
+    console.log("Error in creating notification", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error creating notification"
+    });
+  }
+};
+
+// Get comprehensive dashboard data
+exports.getDashboardData = async (req, res, next) => {
+  try {
+    // Get basic counts
+    const totalStudents = await Student.countDocuments();
+    const totalFaculty = await Faculty.countDocuments();
+    const totalSubjects = await Subject.countDocuments();
+    const totalAdmins = await Admin.countDocuments();
+
+    // Get department-wise statistics
+    const studentsByDepartment = await Student.aggregate([
+      { $group: { _id: "$department", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    const facultyByDepartment = await Faculty.aggregate([
+      { $group: { _id: "$department", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Get recent activities
+    const recentStudents = await Student.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email registrationNumber department year createdAt');
+
+    const recentFaculty = await Faculty.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email registrationNumber department designation createdAt');
+
+    // Get attendance statistics
+    const attendanceStats = await Attendance.aggregate([
+      { $group: { _id: null, totalLectures: { $sum: "$totalLectures" }, totalAttended: { $sum: "$lecturesAttended" } } }
+    ]);
+
+    // Get marks statistics
+    const marksStats = await Mark.aggregate([
+      { $group: { _id: "$exam", count: { $sum: 1 }, avgMarks: { $avg: "$marks" } } }
+    ]);
+
+    // Get unread notifications count
+    const unreadNotifications = await Notification.countDocuments({
+      recipientType: 'admin',
+      isRead: false
+    });
+
+    res.status(200).json({
+      success: true,
+      result: {
+        overview: {
+          totalStudents,
+          totalFaculty,
+          totalSubjects,
+          totalAdmins,
+          unreadNotifications
+        },
+        departmentStats: {
+          students: studentsByDepartment,
+          faculty: facultyByDepartment
+        },
+        recentActivities: {
+          students: recentStudents,
+          faculty: recentFaculty
+        },
+        academicStats: {
+          attendance: attendanceStats[0] || { totalLectures: 0, totalAttended: 0 },
+          marks: marksStats
+        },
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.log("Error in getting dashboard data", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard data"
+    });
+  }
+};
+
+// Get detailed analytics
+exports.getAnalytics = async (req, res, next) => {
+  try {
+    const { period = '30' } = req.query; // days
+    const startDate = new Date(Date.now() - period * 24 * 60 * 60 * 1000);
+
+    // Student registration trends
+    const studentTrends = await Student.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Faculty registration trends
+    const facultyTrends = await Faculty.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Attendance trends
+    const attendanceTrends = await Attendance.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, totalLectures: { $sum: "$totalLectures" }, totalAttended: { $sum: "$lecturesAttended" } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Performance by department
+    const departmentPerformance = await Student.aggregate([
+      { $lookup: { from: "marks", localField: "_id", foreignField: "student", as: "marks" } },
+      { $unwind: { path: "$marks", preserveNullAndEmptyArrays: true } },
+      { $group: { _id: "$department", avgMarks: { $avg: "$marks.marks" }, studentCount: { $sum: 1 } } },
+      { $sort: { avgMarks: -1 } }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      result: {
+        period: `${period} days`,
+        studentTrends,
+        facultyTrends,
+        attendanceTrends,
+        departmentPerformance,
+        generatedAt: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.log("Error in getting analytics", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching analytics"
+    });
+  }
+};
+
+// Helper function to automatically assign student to hostel and room
+const assignStudentToHostel = async (studentId) => {
+  try {
+    const Student = require("../models/Student");
+    const Hostel = require("../models/Hostel");
+    const Room = require("../models/Room");
+
+    // Get the student
+    const student = await Student.findById(studentId);
+    if (!student) {
+      throw new Error("Student not found");
+    }
+
+    // Check if student is already assigned to a hostel
+    if (student.hostelInfo && student.hostelInfo.hostel) {
+      console.log("Student is already assigned to a hostel");
+      return;
+    }
+
+    // Find available hostels
+    const hostels = await Hostel.find({ status: "Active" });
+    if (hostels.length === 0) {
+      throw new Error("No active hostels available");
+    }
+
+    // Find the first hostel with available rooms
+    for (const hostel of hostels) {
+      const availableRooms = await Room.find({
+        hostel: hostel._id,
+        status: "Active",
+        $expr: { $lt: ["$occupied", "$capacity"] }
+      }).sort({ roomNumber: 1 });
+
+      if (availableRooms.length > 0) {
+        const room = availableRooms[0];
+        
+        // Assign student to room
+        room.students.push(studentId);
+        room.occupied += 1;
+        await room.save();
+
+        // Update student's hostel info
+        student.hostelInfo = {
+          hostel: hostel._id,
+          room: room._id,
+          bedNumber: `${room.roomNumber}-${room.occupied}`
+        };
+        await student.save();
+
+        console.log(`Student ${student.name} assigned to hostel ${hostel.name}, room ${room.roomNumber}`);
+        return;
+      }
+    }
+
+    throw new Error("No available rooms in any hostel");
+  } catch (err) {
+    console.log("Error in automatic hostel assignment:", err.message);
+    throw err;
+  }
+};
+
+// Assign all unassigned students to hostels
+exports.assignAllStudentsToHostels = async (req, res, next) => {
+  try {
+    const Student = require("../models/Student");
+    
+    // Find all students who are not assigned to any hostel
+    const unassignedStudents = await Student.find({
+      $or: [
+        { hostelInfo: { $exists: false } },
+        { "hostelInfo.hostel": { $exists: false } },
+        { "hostelInfo.hostel": null }
+      ]
+    });
+
+    if (unassignedStudents.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "All students are already assigned to hostels",
+        result: { assignedCount: 0, totalStudents: 0 }
+      });
+    }
+
+    let assignedCount = 0;
+    const errors = [];
+
+    for (const student of unassignedStudents) {
+      try {
+        await assignStudentToHostel(student._id);
+        assignedCount++;
+      } catch (error) {
+        errors.push({
+          studentId: student._id,
+          studentName: student.name,
+          error: error.message
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully assigned ${assignedCount} out of ${unassignedStudents.length} students to hostels`,
+      result: {
+        assignedCount,
+        totalStudents: unassignedStudents.length,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    });
+  } catch (err) {
+    console.log("Error in assigning all students to hostels:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error assigning students to hostels",
+      error: err.message
+    });
+  }
+};
+
+// Add new applicant
+exports.addApplicant = async (req, res, next) => {
+  try {
+    const {
+      name,
+      email,
+      contactNumber,
+      fatherName,
+      motherName,
+      address,
+      dateOfBirth,
+      gender,
+      category,
+      department,
+      year,
+      section,
+      previousQualification,
+      previousMarks,
+      previousSchool
+    } = req.body;
+
+    // Check if applicant already exists
+    const existingApplicant = await Applicant.findOne({ email });
+    if (existingApplicant) {
+      return res.status(400).json({
+        success: false,
+        message: "Applicant with this email already exists"
+      });
+    }
+
+    // Create new applicant
+    const newApplicant = new Applicant({
+      name,
+      email,
+      contactNumber,
+      fatherName,
+      motherName,
+      address,
+      dateOfBirth,
+      gender,
+      category,
+      department,
+      year,
+      section,
+      previousQualification,
+      previousMarks,
+      previousSchool,
+      status: "Pending"
+    });
+
+    await newApplicant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Applicant added successfully",
+      result: {
+        _id: newApplicant._id,
+        name: newApplicant.name,
+        email: newApplicant.email,
+        applicationId: newApplicant.applicationId,
+        department: newApplicant.department,
+        year: newApplicant.year,
+        section: newApplicant.section,
+        status: newApplicant.status
+      }
+    });
+  } catch (err) {
+    console.log("Error in adding applicant:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error adding applicant",
+      error: err.message
+    });
+  }
+};
+
+// Get all applicants
+exports.getAllApplicants = async (req, res, next) => {
+  try {
+    const { q } = req.body;
+    let query = {};
+    
+    if (q) {
+      query = {
+        $or: [
+          { name: { $regex: q, $options: 'i' } },
+          { email: { $regex: q, $options: 'i' } },
+          { applicationId: { $regex: q, $options: 'i' } }
+        ]
+      };
+    }
+
+    const applicants = await Applicant.find(query).sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      result: applicants
+    });
+  } catch (err) {
+    console.log("Error in getting applicants:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching applicants",
+      error: err.message
+    });
+  }
+};
+
+// Update applicant status
+exports.updateApplicantStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const applicant = await Applicant.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!applicant) {
+      return res.status(404).json({
+        success: false,
+        message: "Applicant not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Applicant status updated successfully",
+      result: applicant
+    });
+  } catch (err) {
+    console.log("Error in updating applicant status:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error updating applicant status",
+      error: err.message
+    });
+  }
+};
+
+// Delete applicant
+exports.deleteApplicant = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const applicant = await Applicant.findByIdAndDelete(id);
+    if (!applicant) {
+      return res.status(404).json({
+        success: false,
+        message: "Applicant not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Applicant deleted successfully"
+    });
+  } catch (err) {
+    console.log("Error in deleting applicant:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting applicant",
       error: err.message
     });
   }

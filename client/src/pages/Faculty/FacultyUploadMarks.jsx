@@ -1,128 +1,15 @@
 import React,{useState,useEffect} from 'react'
 import {useSelector,useDispatch} from 'react-redux'
-import {DataGrid} from '@material-ui/data-grid'
+import {DataGrid} from '@mui/x-data-grid'
 import {useNavigate} from 'react-router-dom'
 
-import styled from 'styled-components'
-import FacultyNavbar from '../../components/FacultyNavbar'
+import { Box, Container, Card, CardContent, Typography, Grid, FormControl, InputLabel, Select, MenuItem, Button, TextField, Divider, CircularProgress } from '@mui/material'
+import { Person as PersonIcon, CalendarToday as CalendarIcon, Search as SearchIcon, Class as ClassIcon, Upload as UploadIcon } from '@mui/icons-material'
+import FacultyLayout from '../../components/FacultyLayout'
 import {fetchStudents,uploadMarks} from '../../redux/actions/facultyAction'
-
-import {Person,CalendarToday,Search,Class} from '@material-ui/icons'
-import {useAlert} from 'react-alert'
-
-const Container = styled.div` 
-width:100%;
-box-sizing:border-box;
-background-color: rgb(255, 255, 255);
-display:flex;
-flex-direction:column;
-border-left: 1px solid rgba(0, 0, 0, 0.158);
-height: 100vh;
-`
-const Heading = styled.h1` 
-font:400 2rem;
-padding:0.5vmax; 
-box-sizing:border-box;
-color:#0077b6;
-transition: all 0.5s;
-margin: 2rem;
-text-align: center;
-border-bottom:1px solid #0077b6;
-`
-const Form = styled.form` 
-width:100%;
-display: flex;
-flex-direction: column;
-align-items: center;
-margin: auto;
-padding: 3vmax;
-background-color: white;
-`
-
-const FormItemContainer  = styled.div` 
-display:flex;
-justify-content:center;
-width: 100%;
-`
-const FormItem = styled.div` 
-display: flex;
-align-items: center;
-margin: 2rem;
->input{
-    padding:1vmax 4vmax;
-    padding-right:1vmax;
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid rgba(0, 0, 0, 0.267);
-    border-radius: 4px;
-    font: 300 0.9vmax;
-    outline: none;
-}
->select{
-    padding:1vmax 4vmax;
-    padding-right:1vmax;
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid rgba(0, 0, 0, 0.267);
-    border-radius: 4px;
-    font: 300 0.9vmax;
-    outline: none;
-}
->svg{
-    position:absolute;
-    transform:translateX(1vmax);
-    font-size:1.6vmax; 
-    color:rgba(0,0,0,0.623)
-}
-`
-
-const Button = styled.button` 
-    border-radius: 10px;
-    border:none;
-    background-color: #0077b6;
-    font: 400 1vmax;
-    color: white;
-    text-decoration: none;
-    padding: 0.5vmax;
-    width: 30%;
-    margin: 4vmax;
-    text-align: center;
-    cursor:pointer;
-`
-
+import toast from 'react-hot-toast'
 
 const FacultyUploadMarks = () => {
-    const alert = useAlert();
-
-    const handleInputChange = (value,_id) => {
-        const newMarks = [...marks];
-        let index = newMarks.findIndex(m => m._id === _id);
-        if(index === -1)
-        {
-            newMarks.push({_id,value})
-        }else{
-            newMarks[index].value = value;
-        }
- 
-        setMarks(newMarks);
- 
-     }
-
-    const columns = [
-        {field:"id",headerName:"No.",flex:0.2},
-        {field:"code",headerName:"Registration Number",flex:0.5},
-        {field:"name",headerName:"Name",flex:0.5},
-        {field:"year",headerName:"Marks",flex:0.3,type:"number",sortable:false,
-        renderCell:(params) => {
-           // console.log(params);
-            return(
-                <>
-                <input required onChange={(e) => handleInputChange(e.target.value,params.getValue(params.id,"id"))} type="number" style={{outline:"none",border:"none"}} placeholder="Enter marks"/>
-                </>
-            )
-        }},
-    ]
-
     const store = useSelector((store) => store)
     const faculty = useSelector((store) => store.faculty);
     const navigate = useNavigate();
@@ -133,150 +20,136 @@ const FacultyUploadMarks = () => {
     const [marks, setMarks] = useState([])
     const [section, setSection] = useState("")
     const [subjectCode, setSubjectCode] = useState("")
-    const [totalMarks, setTotalMarks] = useState()
+    const [totalMarks, setTotalMarks] = useState('')
     const [exam ,setExam] = useState("")
     const [error, setError] = useState({})
     const [errorHelper, setErrorHelper] = useState({})
     const [isFetchingStudents,setIsFetchingStudents] = useState(true);
+    const [loading, setLoading] = useState(false)
 
-    useEffect(() => {
-        if (store.error) {
-            setError(store.error)
-        }
-    }, [store.error])
+    useEffect(() => { if (store.error) setError(store.error) }, [store.error])
+    useEffect(() => { if (store.errorHelper) setErrorHelper(store.errorHelper) }, [store.errorHelper])
 
-    useEffect(() => {
-        if (store.errorHelper) {
-            setErrorHelper(store.errorHelper)
-        }
-    }, [store.errorHelper])
+    const handleInputChange = (value,_id) => {
+        const newMarks = [...marks];
+        let index = newMarks.findIndex(m => m._id === _id);
+        if(index === -1) newMarks.push({_id,value}); else newMarks[index].value = value;
+        setMarks(newMarks);
+    }
 
+    const columns = [
+        {field:"id",headerName:"No.",flex:0.2,minWidth:80},
+        {field:"code",headerName:"Registration Number",flex:1,minWidth:180},
+        {field:"name",headerName:"Name",flex:1.2,minWidth:200},
+        {field:"year",headerName:"Marks",flex:0.8,sortable:false,
+         renderCell:(params) => (
+            <TextField size="small" type="number" onChange={(e) => handleInputChange(e.target.value,params.id)} placeholder="Enter marks" />
+         )
+        },
+    ]
+
+    const rows = [];
+    faculty.fetchedStudents.forEach((item,index) => {
+        rows.push({ id:item._id, code:item.registrationNumber, name:item.name })
+    })
 
     const formHandler = (e) => {
         e.preventDefault();
-        //console.log(year,section);
-       dispatch(fetchStudents(department, year,  section));
-       setIsFetchingStudents(prev => !prev);
+        if (!section || !exam || !department || !year) { toast.error('Select all fields'); return; }
+        setLoading(true)
+        dispatch(fetchStudents(department, year, section)).then(() => setIsFetchingStudents(false)).finally(() => setLoading(false))
     }
-
-
 
     const secondFormHandler = (e) => {
         e.preventDefault();
-       // console.log(subjectCode, exam, totalMarks, marks, department, section);
-        dispatch(uploadMarks(subjectCode, exam, totalMarks, marks, department, section
-        ));
-        alert.success("Marks uploaded successfully");
+        if (!subjectCode || !totalMarks) { toast.error('Select subject and enter total marks'); return; }
+        dispatch(uploadMarks(subjectCode, exam, totalMarks, marks, department, year, section));
+        toast.success("Marks uploaded successfully");
     }
 
-    const rows = [];
-    faculty.fetchedStudents.forEach((item) => {
-        rows.push({
-            id:item._id,
-            code:item.registrationNumber,
-            name:item.name,
-        })
-    })
+    return (
+      <FacultyLayout title="Upload Marks">
+        <Box sx={{ p: { xs: 0.5, sm: 1, md: 2 } }}>
+          <Container maxWidth="lg" sx={{ px: { xs: 0.5, sm: 1, md: 2 } }}>
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                {isFetchingStudents ? (
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <FormControl fullWidth>
+                        <InputLabel>Section</InputLabel>
+                        <Select value={section} label="Section" onChange={(e) => setSection(e.target.value)} startAdornment={<ClassIcon sx={{ mr: 1 }} />}>
+                          <MenuItem value="">Select Section</MenuItem>
+                          {['A','B','C','D'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <FormControl fullWidth>
+                        <InputLabel>Exam</InputLabel>
+                        <Select value={exam} label="Exam" onChange={(e) => setExam(e.target.value)}>
+                          <MenuItem value="">Select Exam</MenuItem>
+                          <MenuItem value="Unit Test 1">Unit Test 1</MenuItem>
+                          <MenuItem value="Unit Test 2">Unit Test 2</MenuItem>
+                          <MenuItem value="Semester">Semester</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <FormControl fullWidth>
+                        <InputLabel>Department</InputLabel>
+                        <Select value={department} label="Department" onChange={(e) => setDepartment(e.target.value)} startAdornment={<PersonIcon sx={{ mr: 1 }} />}>
+                          <MenuItem value="">Department</MenuItem>
+                          {['C.S.E','E.C.E','I.T','Civil','Mechanical'].map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <FormControl fullWidth>
+                        <InputLabel>Year</InputLabel>
+                        <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)} startAdornment={<CalendarIcon sx={{ mr: 1 }} />}>
+                          <MenuItem value="">Year</MenuItem>
+                          {[1,2,3,4].map(y => <MenuItem key={y} value={String(y)}>{y}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button onClick={formHandler} variant="contained" startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <SearchIcon />}>{loading ? 'Searching...' : 'Search Students'}</Button>
+                    </Grid>
+                  </Grid>
+                ) : (
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <FormControl fullWidth>
+                        <InputLabel>Subject</InputLabel>
+                        <Select value={subjectCode} label="Subject" onChange={(e) => setSubjectCode(e.target.value)} startAdornment={<ClassIcon sx={{ mr: 1 }} />}>
+                          <MenuItem value="">Subject</MenuItem>
+                          {faculty.allSubjectCodeList.map(code => <MenuItem key={code} value={code}>{code}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField fullWidth type="number" label="Total Marks" value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Button onClick={secondFormHandler} variant="contained" color="success" startIcon={<UploadIcon />}>Submit Marks</Button>
+                    </Grid>
+                  </Grid>
+                )}
+              </CardContent>
+            </Card>
 
-
-  return (
-    <>
-    {
-        faculty.isAuthenticated?(
-            <>
- <FacultyNavbar/>
-    <Container>
-    <Form>
-    <Heading>Upload Marks</Heading>
-   
-        {
-            isFetchingStudents?(
-                <>
-                <FormItemContainer>
-                <FormItem>
-                    <Class/>
-                    <select required onChange={(e) => setSection(e.target.value)}>
-                        <option>Section</option>
-                        <option>A</option>
-                        <option>B</option>
-                        <option>C</option>
-                        <option>D</option>
-                    </select>
-                </FormItem>
-                <FormItem>
-                    <Class/>
-                    <select onChange={(e) => setExam(e.target.value)}>
-                        <option>Exam</option>
-                        <option>Unit Test 1</option>
-                        <option>Unit Test 2</option>
-                        <option>Semester</option>
-                    </select>
-                </FormItem>
-    
-                </FormItemContainer>
-                <FormItemContainer>
-                <FormItem>
-                    <Person/>
-                    <select required onChange={(e) => setDepartment(e.target.value)}>
-                        <option>Department</option>
-                        <option>C.S.E</option>
-                        <option>E.C.E</option>
-                        <option>I.T</option>
-                        <option>Civil</option>
-                        <option>Mechanical</option>
-                    </select>
-                </FormItem>
-                <FormItem>
-                    <CalendarToday/>
-                    <select  required onChange={(e) => setYear(e.target.value)}>
-                        <option>Year</option>
-                        <option>1</option>
-                        <option>2</option>
-                        <option>3</option>
-                        <option>4</option>
-                    </select>
-                </FormItem>
-                </FormItemContainer>
-                
-                <Button type="submit" onClick={formHandler}>
-                   Search Students
-                 </Button>
-                </>
-            ):( <>
-                <FormItemContainer>
-        <FormItem>
-          <Search/>
-          <select required onChange={(e) => setSubjectCode(e.target.value)}>
-                        <option>Subject</option>
-                        {
-                            faculty.allSubjectCodeList.map(subjectCodeName => 
-                                <option>{subjectCodeName}</option>
-                            )
-                        }
-         </select>
-        </FormItem>
-        <FormItem>
-                  <Class/>
-                  <input type="number" placeholder="Enter total marks" required onChange={(e) => setTotalMarks(e.target.value)}/>
-        </FormItem>
-       </FormItemContainer>
-                <Button type="submit" onClick={secondFormHandler}>
-                   Submit Marks
-                 </Button>
-       </>
-            )
-        }
-     </Form>
-        <DataGrid rows={rows} columns={columns} pageSize={5} autoHeight/>
-    </Container>
-            </>
-        ):(
-            navigate('/')
-        )
-    }
-   
-    </>
-  )
+            <Card>
+              <CardContent sx={{ p: 0 }}>
+                <Box sx={{ height: 520, width: '100%' }}>
+                  <DataGrid rows={rows} columns={columns} pageSize={10} rowsPerPageOptions={[5,10,25]} disableSelectionOnClick sx={{ '& .MuiDataGrid-columnHeaders': { backgroundColor: 'action.hover' }, '& .MuiDataGrid-row:hover': { backgroundColor: 'action.hover' } }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Container>
+        </Box>
+      </FacultyLayout>
+    )
 }
 
 export default FacultyUploadMarks

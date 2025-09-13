@@ -1,117 +1,57 @@
 import React,{useEffect, useState} from 'react'
-import {CircularProgress} from '@material-ui/core'
-import styled from 'styled-components'
+import { 
+  Box, 
+  Card, 
+  CardContent, 
+  TextField, 
+  Button, 
+  Typography, 
+  Container,
+  Paper,
+  CircularProgress,
+  Alert,
+  InputAdornment,
+  IconButton,
+  Grid,
+  Avatar,
+  Fade,
+  Tooltip
+} from '@mui/material'
+import { 
+  Visibility, 
+  VisibilityOff, 
+  AdminPanelSettings,
+  Login as LoginIcon,
+  Person,
+  Lock,
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon
+} from '@mui/icons-material'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
 import { adminLogin } from '../redux/actions/adminAction'
-
-
-import {useAlert} from 'react-alert'
-
-const Container = styled.div` 
-width:100vw;
-height:100vh;
-background:linear-gradient(75deg,#0077b6 50%,#ffffff 50%);
-display:flex;
-align-items: center;
-justify-content: center;
-`
-
-const Wrapper = styled.div` 
-width: 80%;
-height: 70%;
-display: flex;
-background-color:white;
-border-radius:10px;
-color:#0077b6;
-`
-const Left = styled.div` 
-flex:0.6;
-display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-left:10px;
-`
-
-const Logo = styled.h3`
-font-size: 50px;
-font-weight: 800;
-color: #0077b6;
-margin-bottom: 10px;
-`
-
-const Desc = styled.span` 
-font-size:24px; 
-`
-
-const Right = styled.div`
-  flex: 0.4;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-right:10px;
-`
-
-const LoginBox = styled.form` 
-height:300px;
-padding:20px;
-border-radius: 10px;
-display: flex;
-flex-direction: column;
-justify-content: space-between;
-`
-const LoginInput = styled.input`
-height: 50px;
-border-radius: 10px;
-border: 1px solid #0077b6;
-font-size: 18px;
-padding-left: 20px;
-:focus{
-    outline: 1px solid #03045e;
-}`
-
-const LoginButton = styled.button`
-height:50px;
-border-radius:10px;
-border:none;
-background-color: #0077b6;
-color: white;
-    font-size: 20px;
-    font-weight: 500;
-    cursor: pointer;
-`
-
-const LoginInfo = styled.p`
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    >a{
-        text-decoration:none;
-        color:tomato;
-    }
-`
-
-
+import toast from 'react-hot-toast'
+import { useTheme as useCustomTheme } from '../contexts/ThemeContext'
 
 const AdminLogin = () => {
     const dispatch = useDispatch();
     const store = useSelector((state) => state)
-    const alert = useAlert();
 
     const [regNum,setRegNum] = useState("");
     const [password,setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState({})
     const [errorsHelper, setErrorsHelper] = useState({})
     const [isLoading, setIsLoading] = useState(false)
    
-
     const navigate = useNavigate();
+    const { darkMode, toggleTheme } = useCustomTheme()
 
     useEffect(() => {
         if(store.admin.isAuthenticated)
         {
             navigate('/admin')
-            alert.success("Admin Login Successful");
+            toast.success("Admin Login Successful");
         }
     },[store.admin.isAuthenticated])
 
@@ -119,6 +59,7 @@ const AdminLogin = () => {
         if(store.error)
         {
             setErrors(store.error)
+            toast.error(store.error.message || "Login failed");
         }
     },[store.error])
 
@@ -135,30 +76,197 @@ const AdminLogin = () => {
         else{
             setIsLoading(true)
         }
-
     },[store.error,store.admin.isAuthenticated]) 
 
+    const handleClickShowPassword = () => {
+        setShowPassword(!showPassword);
+    };
+
+    const handleMouseDownPassword = (event) => {
+        event.preventDefault();
+    };
+
   return (
-    <Container>
-        <Wrapper>
-            <Left>
-                <Logo>Smart ERP</Logo>
-                <Desc>Admin Login</Desc>
-            </Left>
-            <Right>
-               
-                       <LoginBox>
-                           <LoginInput placeholder="Admin GR Number" type="text" onChange={(e) => setRegNum(e.target.value)} required/>
-                           <LoginInput placeholder="Password" type="password" onChange={(e) => setPassword(e.target.value)} required/>
-                           <LoginButton type="submit" onClick={loginHandler}>
-                               Log In
-                           </LoginButton>
-                       </LoginBox>
-                   
-                
-            </Right>
-        </Wrapper>
-    </Container>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        backgroundColor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 2,
+        position: 'relative'
+      }}
+    >
+      <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+        <Tooltip title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+          <IconButton size="small" onClick={toggleTheme}>
+            {darkMode ? <LightModeIcon/> : <DarkModeIcon/>}
+          </IconButton>
+        </Tooltip>
+      </Box>
+      <Container maxWidth="lg">
+        <Fade in={true} timeout={1000}>
+          <Grid container spacing={3} alignItems="center">
+            {/* Left Side - Branding */}
+            <Grid item xs={12} md={6}>
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  color: 'text.primary',
+                  mb: 4
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    bgcolor: 'primary.main',
+                    margin: '0 auto 2rem',
+                    color: 'common.white'
+                  }}
+                >
+                  <AdminPanelSettings sx={{ fontSize: 60 }} />
+                </Avatar>
+                <Typography 
+                  variant="h2" 
+                  component="h1" 
+                  sx={{ 
+                    fontWeight: 'bold',
+                    mb: 2,
+                    textShadow: 'none'
+                  }}
+                >
+                  Smart ERP
+                </Typography>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    opacity: 0.9,
+                    fontWeight: 300
+                  }}
+                >
+                  Admin Portal
+                </Typography>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    mt: 2,
+                    opacity: 0.8,
+                    fontWeight: 300
+                  }}
+                >
+                  Manage your institution with ease
+                </Typography>
+              </Box>
+            </Grid>
+
+            {/* Right Side - Login Form */}
+            <Grid item xs={12} md={6}>
+              <Card
+                sx={{
+                  maxWidth: 500,
+                  mx: 'auto',
+                  borderRadius: 3,
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+                  backgroundColor: 'background.paper',
+                  borderTop: '6px solid',
+                  borderColor: 'primary.main'
+                }}
+              >
+                <CardContent sx={{ p: 4 }}>
+                  <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 1 }}>
+                      Welcome Back
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      Sign in to your admin account
+                    </Typography>
+                  </Box>
+
+                  <Box component="form" onSubmit={loginHandler} sx={{ mt: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Admin GR Number"
+                      variant="outlined"
+                      value={regNum}
+                      onChange={(e) => setRegNum(e.target.value)}
+                      required
+                      sx={{ mb: 3 }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Person color="primary" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    
+                    <TextField
+                      fullWidth
+                      label="Password"
+                      type={showPassword ? 'text' : 'password'}
+                      variant="outlined"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      sx={{ mb: 3 }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Lock color="primary" />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              aria-label="toggle password visibility"
+                              onClick={handleClickShowPassword}
+                              onMouseDown={handleMouseDownPassword}
+                              edge="end"
+                            >
+                              {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+
+                    <Button
+                      type="submit"
+                      fullWidth
+                      variant="contained"
+                      size="large"
+                      disabled={isLoading}
+                      sx={{
+                        py: 1.5,
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        borderRadius: 2,
+                        background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                        boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+                        '&:hover': {
+                          background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
+                        }
+                      }}
+                      startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
+                    >
+                      {isLoading ? 'Signing In...' : 'Sign In'}
+                    </Button>
+                  </Box>
+
+                  <Box sx={{ mt: 3, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Having trouble? Contact system administrator
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Fade>
+      </Container>
+    </Box>
   )
 }
 
