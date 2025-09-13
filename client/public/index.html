@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+      
+      /* Global Reset and Base Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      html {
+        font-size: 16px;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+      }
+      
+      body {
+        font-family: 'Roboto', sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f5f5f5;
+        overflow-x: hidden;
+        min-height: 100vh;
+        width: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Material-UI Component Overrides */
+      .MuiContainer-root {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      
+      .MuiGrid-container {
+        width: 100% !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+      }
+      
+      .MuiGrid-item {
+        box-sizing: border-box !important;
+        width: 100% !important;
+      }
+      
+      .MuiCard-root {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin-bottom: 16px !important;
+      }
+      
+      .MuiBox-root {
+        box-sizing: border-box !important;
+      }
+      
+      .MuiPaper-root {
+        box-sizing: border-box !important;
+      }
+      
+      .MuiAppBar-root {
+        box-sizing: border-box !important;
+      }
+      
+      .MuiDrawer-root {
+        box-sizing: border-box !important;
+      }
+      
+      .MuiButton-root {
+        box-sizing: border-box !important;
+        min-height: 44px !important;
+        transition: all 0.3s ease !important;
+      }
+      
+      .MuiTextField-root {
+        box-sizing: border-box !important;
+      }
+      
+      .MuiInputBase-root {
+        box-sizing: border-box !important;
+      }
+      
+      .MuiStepper-root {
+        box-sizing: border-box !important;
+      }
+      
+      .MuiStepLabel-root {
+        box-sizing: border-box !important;
+      }
+      
+      /* Responsive Typography */
+      .MuiTypography-h1 {
+        font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
+        line-height: 1.2 !important;
+        font-weight: 500 !important;
+      }
+      
+      .MuiTypography-h2 {
+        font-size: clamp(1.25rem, 3vw, 2rem) !important;
+        line-height: 1.3 !important;
+        font-weight: 500 !important;
+      }
+      
+      .MuiTypography-h3 {
+        font-size: clamp(1.125rem, 2.5vw, 1.75rem) !important;
+        line-height: 1.4 !important;
+        font-weight: 500 !important;
+      }
+      
+      .MuiTypography-h4 {
+        font-size: clamp(1rem, 2vw, 1.5rem) !important;
+        line-height: 1.4 !important;
+        font-weight: 500 !important;
+      }
+      
+      .MuiTypography-h5 {
+        font-size: clamp(0.875rem, 1.5vw, 1.25rem) !important;
+        line-height: 1.5 !important;
+        font-weight: 500 !important;
+      }
+      
+      .MuiTypography-h6 {
+        font-size: clamp(0.75rem, 1.25vw, 1.125rem) !important;
+        line-height: 1.5 !important;
+        font-weight: 500 !important;
+      }
+      
+      .MuiTypography-body1 {
+        font-size: clamp(0.875rem, 1vw, 1rem) !important;
+        line-height: 1.6 !important;
+      }
+      
+      .MuiTypography-body2 {
+        font-size: clamp(0.75rem, 0.875vw, 0.875rem) !important;
+        line-height: 1.6 !important;
+      }
+      
+      /* Mobile First Responsive Breakpoints */
+      
+      /* Extra Small devices (phones, 0px and up) */
+      @media (max-width: 599px) {
+        .MuiContainer-root {
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+        
+        .MuiGrid-spacing-xs-1 > .MuiGrid-item {
+          padding: 4px !important;
+        }
+        
+        .MuiGrid-spacing-xs-2 > .MuiGrid-item {
+          padding: 8px !important;
+        }
+        
+        .MuiGrid-spacing-xs-3 > .MuiGrid-item {
+          padding: 12px !important;
+        }
+        
+        .MuiCard-root {
+          margin-bottom: 8px !important;
+          padding: 8px !important;
+        }
+        
+        .MuiButton-root {
+          min-height: 48px !important;
+          font-size: 0.875rem !important;
+          padding: 8px 16px !important;
+        }
+        
+        .MuiTextField-root {
+          margin-bottom: 16px !important;
+        }
+        
+        .MuiStepper-root {
+          padding: 8px 0 !important;
+        }
+        
+        .MuiStepLabel-root {
+          padding: 4px 8px !important;
+        }
+        
+        .MuiStepLabel-label {
+          font-size: 0.75rem !important;
+        }
+        
+        .MuiIconButton-root {
+          min-height: 48px !important;
+          min-width: 48px !important;
+        }
+      }
+      
+      /* Small devices (landscape phones, 600px and up) */
+      @media (min-width: 600px) and (max-width: 899px) {
+        .MuiContainer-root {
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+        }
+        
+        .MuiGrid-spacing-sm-1 > .MuiGrid-item {
+          padding: 8px !important;
+        }
+        
+        .MuiGrid-spacing-sm-2 > .MuiGrid-item {
+          padding: 12px !important;
+        }
+        
+        .MuiGrid-spacing-sm-3 > .MuiGrid-item {
+          padding: 16px !important;
+        }
+        
+        .MuiButton-root {
+          min-height: 44px !important;
+          padding: 10px 20px !important;
+        }
+      }
+      
+      /* Medium devices (tablets, 900px and up) */
+      @media (min-width: 900px) and (max-width: 1199px) {
+        .MuiContainer-root {
+          padding-left: 16px !important;
+          padding-right: 16px !important;
+        }
+        
+        .MuiGrid-spacing-md-1 > .MuiGrid-item {
+          padding: 8px !important;
+        }
+        
+        .MuiGrid-spacing-md-2 > .MuiGrid-item {
+          padding: 16px !important;
+        }
+        
+        .MuiGrid-spacing-md-3 > .MuiGrid-item {
+          padding: 24px !important;
+        }
+        
+        .MuiButton-root {
+          min-height: 40px !important;
+          padding: 8px 16px !important;
+        }
+      }
+      
+      /* Large devices (desktops, 1200px and up) */
+      @media (min-width: 1200px) {
+        .MuiContainer-root {
+          padding-left: 24px !important;
+          padding-right: 24px !important;
+        }
+        
+        .MuiGrid-spacing-lg-1 > .MuiGrid-item {
+          padding: 8px !important;
+        }
+        
+        .MuiGrid-spacing-lg-2 > .MuiGrid-item {
+          padding: 16px !important;
+        }
+        
+        .MuiGrid-spacing-lg-3 > .MuiGrid-item {
+          padding: 24px !important;
+        }
+      }
+      
+      /* Extra Large devices (large desktops, 1536px and up) */
+      @media (min-width: 1536px) {
+        .MuiContainer-root {
+          max-width: 1400px !important;
+          margin: 0 auto !important;
+        }
+      }
+      
+      /* Ultra Wide screens (1920px and up) */
+      @media (min-width: 1920px) {
+        .MuiContainer-root {
+          max-width: 1600px !important;
+          margin: 0 auto !important;
+        }
+      }
+      
+      /* Touch Device Optimizations */
+      @media (hover: none) and (pointer: coarse) {
+        .MuiButton-root {
+          min-height: 48px !important;
+          padding: 12px 24px !important;
+        }
+        
+        .MuiIconButton-root {
+          min-height: 48px !important;
+          min-width: 48px !important;
+        }
+        
+        .MuiFab-root {
+          min-height: 56px !important;
+          min-width: 56px !important;
+        }
+        
+        .MuiChip-root {
+          min-height: 32px !important;
+        }
+        
+        .MuiTab-root {
+          min-height: 48px !important;
+        }
+      }
+      
+      /* High DPI Display Optimizations */
+      @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .MuiButton-root {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+      }
+      
+      /* Print Styles */
+      @media print {
+        .MuiContainer-root {
+          max-width: none !important;
+          padding: 0 !important;
+        }
+        
+        .MuiCard-root {
+          box-shadow: none !important;
+          border: 1px solid #ddd !important;
+        }
+        
+        .MuiButton-root {
+          display: none !important;
+        }
+      }
+      
+      /* Accessibility Improvements */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      
+      /* Dark Mode Support */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212;
+          color: #ffffff;
+        }
+      }
+      
+      /* Landscape Orientation */
+      @media (orientation: landscape) and (max-height: 500px) {
+        .MuiContainer-root {
+          padding-top: 8px !important;
+          padding-bottom: 8px !important;
+        }
+        
+        .MuiCard-root {
+          margin-bottom: 8px !important;
+        }
+      }
+      
+      /* Custom Utility Classes */
+      .responsive-text {
+        font-size: clamp(0.75rem, 2vw, 1rem) !important;
+      }
+      
+      .responsive-padding {
+        padding: clamp(8px, 2vw, 24px) !important;
+      }
+      
+      .responsive-margin {
+        margin: clamp(4px, 1vw, 16px) !important;
+      }
+      
+      .full-width {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      
+      .no-overflow {
+        overflow: hidden !important;
+      }
+      
+      .flex-responsive {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: clamp(8px, 2vw, 16px) !important;
+      }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>College ERP</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
