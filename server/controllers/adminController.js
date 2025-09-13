@@ -1,3 +1,54 @@
+// Assign subject to faculty
+exports.assignSubjectToFaculty = async (req, res, next) => {
+  try {
+    const { facultyId, subjects } = req.body;
+    if (!facultyId || !Array.isArray(subjects) || subjects.length === 0) {
+      return res.status(400).json({ success: false, message: "Faculty ID and at least one subject are required" });
+    }
+
+    const Faculty = require("../models/Faculty");
+    const Subject = require("../models/Subject");
+    
+    const faculty = await Faculty.findById(facultyId);
+    if (!faculty) {
+      return res.status(404).json({ success: false, message: "Faculty not found" });
+    }
+
+    // Verify all subjects exist
+    const subjectsExist = await Subject.find({ _id: { $in: subjects } });
+    if (subjectsExist.length !== subjects.length) {
+      return res.status(404).json({ success: false, message: "One or more subjects not found" });
+    }
+
+    // Initialize subjects array if it doesn't exist
+    if (!faculty.subjects) faculty.subjects = [];
+
+    // Add new subjects that aren't already assigned
+    subjects.forEach(subjectId => {
+      if (!faculty.subjects.includes(subjectId)) {
+        faculty.subjects.push(subjectId);
+      }
+    });
+
+    await faculty.save();
+    
+    // Populate subjects before sending response
+    await faculty.populate('subjects', 'subjectName subjectCode');
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Subjects assigned to faculty successfully", 
+      result: faculty 
+    });
+  } catch (err) {
+    console.log("Error in assigning subjects to faculty:", err.message);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Error assigning subjects to faculty", 
+      error: err.message 
+    });
+  }
+};
 const bcrypt = require("bcryptjs");
 const gravatar = require("gravatar");
 const jwt = require("jsonwebtoken");

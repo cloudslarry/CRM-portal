@@ -28,6 +28,7 @@ import {
   AdminGetDepartments,
   AdminSettings,
   FacultySettings,
+  AdminAssignSubject,
   StudentSettings,
   FacultyDashboard,
   FacultySubjectList,
@@ -173,6 +174,11 @@ function App() {
             exact
             path="/admin/add/department"
             element={<AdminAddDepartment />}
+          />
+          <Route
+            exact
+            path="/admin/assign-subject"
+            element={<AdminAssignSubject />}
           />
           <Route
             exact

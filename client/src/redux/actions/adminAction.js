@@ -45,6 +45,59 @@ const getSubjectsHelper = (data) => {
   };
 };
 
+export const getAllSubjects = () => async (dispatch) => {
+  try {
+    const { data } = await api.post('/api/admin/getAllSubject');
+    console.log('Subject data from API:', data);
+    dispatch(getSubjectsHelper(data.result));
+    return {
+      success: true,
+      result: data.result
+    };
+  } catch (error) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: error.response.data
+    });
+    return {
+      success: false,
+      error: error.response.data
+    };
+  }
+};
+
+export const assignSubjectToFaculty = (facultyId, subjects) => async (dispatch) => {
+  try {
+    const { data } = await api.post('/api/admin/assign-subject', { facultyId, subjects });
+    console.log('Dispatching faculty data:', data);
+      return {
+        type: "GET_ALL_FACULTY",
+        payload: data,
+      };
+
+    if (data.success) {
+      return {
+        success: true,
+        result: data.result
+      };
+    }
+    return {
+      success: false,
+      error: data
+    };
+  } catch (error) {
+    console.error('Error assigning subjects:', error);
+    dispatch({
+      type: SET_ERRORS,
+      payload: error.response.data
+    });
+    return {
+      success: false,
+      error: error.response.data
+    };
+  }
+};
+
 const adminGetAllFacultyHelper = (data) => {
   console.log('Dispatching faculty data:', data);
   return {

@@ -1,4 +1,5 @@
 import React,{useRef,useState,useEffect} from 'react'
+import { getPrivateConversation, sendMessage } from '../redux/actions/studentAction'
 import { useSelector, useDispatch } from 'react-redux'
 import toast from 'react-hot-toast'
 
@@ -56,8 +57,8 @@ const Chat = ({match}) => {
     },[socketUrl,params.room])
 
     useEffect(() => {
-        dispatch(getPrivateConversation(room1));
-        dispatch(getPrivateConversation2(room2));
+  dispatch(getPrivateConversation(room1));
+  // dispatch(getPrivateConversation2(room2)); // Removed: not needed
         socket = io(socketUrl);
         socket.emit('join room',{
             room1,

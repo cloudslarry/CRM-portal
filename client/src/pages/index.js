@@ -18,6 +18,7 @@ export { default as FacultyAttendance } from "./Faculty/FacultyAttendance";
 export { default as AdminGetFaculty } from "./Admin/AdminGetFaculty";
 export { default as AdminGetStudents } from "./Admin/AdminGetStudents";
 export { default as AdminGetSubjects } from "./Admin/AdminGetSubjects";
+export { default as AdminAssignSubject } from "./Admin/AdminAssignSubject";
 export { default as AdminAddStudent } from "./Admin/AdminAddStudent";
 export { default as AdminAddFaculty } from "./Admin/AdminAddFaculty";
 export { default as AdminAddSubject } from "./Admin/AdminAddSubject";

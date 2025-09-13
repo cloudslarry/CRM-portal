@@ -46,10 +46,14 @@ import {
   Phone as PhoneIcon,
   Work as WorkIcon,
   Class as ClassIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  CheckBox as CheckBoxIcon,
+  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
+  LibraryBooks as LibraryBooksIcon,
+  Assignment as AssignmentIcon
 } from '@mui/icons-material'
 import AdminLayout from '../../components/AdminLayout'
-import { adminGetAllFaculty, adminViewFaculty, adminUpdateFaculty, adminDeleteFaculty, adminBulkDeleteFaculty } from '../../redux/actions/adminAction'
+import { adminGetAllFaculty, adminViewFaculty, adminUpdateFaculty, adminDeleteFaculty, adminBulkDeleteFaculty, getAllSubjects, assignSubjectToFaculty } from '../../redux/actions/adminAction'
 import toast from 'react-hot-toast'
 
 const AdminGetFaculty = () => {
@@ -65,6 +69,10 @@ const AdminGetFaculty = () => {
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assignSubjectDialogOpen, setAssignSubjectDialogOpen] = useState(false);
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [subjectSearchTerm, setSubjectSearchTerm] = useState('');
   const [selectionModel, setSelectionModel] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [department, setDepartment] = useState('Computer Science');
@@ -100,7 +108,22 @@ const AdminGetFaculty = () => {
   useEffect(() => {
     console.log('Component mounted, fetching faculty...');
     fetchFaculty();
+    fetchSubjects();
   }, []);
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await dispatch(getAllSubjects());
+      if (response.success) {
+        setSubjects(response.result);
+      } else {
+        toast.error('Failed to fetch subjects');
+      }
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      toast.error('Failed to fetch subjects');
+    }
+  };
 
   // Keyboard shortcut for advanced search (Ctrl/Cmd + Shift + A)
   useEffect(() => {
@@ -293,6 +316,12 @@ const AdminGetFaculty = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleAssignSubject = (row) => {
+    setSelectedFaculty(row);
+    setSelectedSubjects(row.subjects || []);
+    setAssignSubjectDialogOpen(true);
+  };
+
   const confirmDelete = async () => {
     if (!selectedFaculty) return;
     const id = selectedFaculty._id || selectedFaculty.id;
@@ -459,12 +488,20 @@ const AdminGetFaculty = () => {
     {
       field: 'actions',
       headerName: 'Action',
-      width: 140,
+      width: 180,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <Tooltip title="View"><IconButton size="small" onClick={() => handleViewFaculty(params.row)}><ViewIcon fontSize="small" /></IconButton></Tooltip>
           <Tooltip title="Update"><IconButton size="small" onClick={() => handleEditFaculty(params.row)}><EditIcon fontSize="small" /></IconButton></Tooltip>
           <Tooltip title="Delete"><IconButton size="small" onClick={() => handleDeleteFaculty(params.row)}><DeleteIcon fontSize="small" color="error" /></IconButton></Tooltip>
+          <Tooltip title="Assign Subjects">
+            <IconButton 
+              size="small" 
+              onClick={() => navigate('/admin/assign-subject', { state: { selectedFaculty: params.row } })}
+            >
+              <ClassIcon fontSize="small" color="primary" />
+            </IconButton>
+          </Tooltip>
         </Box>
       ),
       sortable: false,
@@ -585,6 +622,25 @@ const AdminGetFaculty = () => {
                   }}
                 >
                   Add Faculty
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<ClassIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />}
+                  onClick={() => navigate('/admin/assign-subject')}
+                  sx={{
+                    borderRadius: { xs: 1, sm: 2 },
+                    px: { xs: 1.25, sm: 1.5, md: 2 },
+                    py: { xs: 0.5, sm: 0.75, md: 1 },
+                    minHeight: { xs: 36, sm: 40, md: 44 },
+                    fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                    width: { xs: '100%', sm: 'auto' },
+                    background: 'linear-gradient(45deg, #1976d2 30%, #64b5f6 90%)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
+                    }
+                  }}
+                >
+                  Assign Subject
                 </Button>
               </Box>
             </Box>
@@ -1122,6 +1178,180 @@ const AdminGetFaculty = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Subject Assignment Dialog */}
+      <Dialog
+        open={assignSubjectDialogOpen}
+        onClose={() => {
+          setAssignSubjectDialogOpen(false);
+          setSelectedSubjects([]);
+          setSubjectSearchTerm('');
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <AssignmentIcon color="primary" />
+            <Typography variant="h6">
+              Assign Subjects to Faculty
+            </Typography>
+          </Box>
+          {selectedFaculty && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+              <Avatar src={selectedFaculty?.avatar?.url}>
+                <PersonIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                  {selectedFaculty.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedFaculty.department} • {selectedFaculty.designation}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogTitle>
+
+        <DialogContent sx={{ py: 2 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Search subjects by name or code..."
+                value={subjectSearchTerm}
+                onChange={(e) => setSubjectSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Paper variant="outlined" sx={{ p: 2, maxHeight: 400, overflow: 'auto' }}>
+                <Grid container spacing={1}>
+                  {subjects
+                    .filter(subject => 
+                      subject.subjectName.toLowerCase().includes(subjectSearchTerm.toLowerCase()) ||
+                      subject.subjectCode.toLowerCase().includes(subjectSearchTerm.toLowerCase())
+                    )
+                    .map((subject) => (
+                      <Grid item xs={12} sm={6} key={subject._id}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            bgcolor: selectedSubjects.includes(subject._id) ? 'action.selected' : 'background.paper',
+                            '&:hover': {
+                              bgcolor: 'action.hover',
+                            },
+                          }}
+                          onClick={() => {
+                            setSelectedSubjects(prev => 
+                              prev.includes(subject._id)
+                                ? prev.filter(id => id !== subject._id)
+                                : [...prev, subject._id]
+                            );
+                          }}
+                        >
+                          {selectedSubjects.includes(subject._id) ? (
+                            <CheckBoxIcon color="primary" sx={{ mr: 1 }} />
+                          ) : (
+                            <CheckBoxOutlineBlankIcon sx={{ mr: 1 }} />
+                          )}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                              {subject.subjectName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Code: {subject.subjectCode}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            size="small"
+                            label={subject.department}
+                            color="primary"
+                            variant="outlined"
+                          />
+                        </Paper>
+                      </Grid>
+                    ))}
+                </Grid>
+              </Paper>
+            </Grid>
+
+            {selectedSubjects.length > 0 && (
+              <Grid item xs={12}>
+                <Paper variant="outlined" sx={{ p: 1, bgcolor: 'background.default' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Selected Subjects ({selectedSubjects.length}):
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selectedSubjects.map(subjectId => {
+                      const subject = subjects.find(s => s._id === subjectId);
+                      return (
+                        <Chip
+                          key={subjectId}
+                          label={`${subject?.subjectName} (${subject?.subjectCode})`}
+                          onDelete={() => {
+                            setSelectedSubjects(prev => prev.filter(id => id !== subjectId));
+                          }}
+                          size="small"
+                        />
+                      );
+                    })}
+                  </Box>
+                </Paper>
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button
+            onClick={() => {
+              setAssignSubjectDialogOpen(false);
+              setSelectedSubjects([]);
+              setSubjectSearchTerm('');
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={selectedSubjects.length === 0}
+            onClick={async () => {
+              try {
+                const response = await dispatch(assignSubjectToFaculty(selectedFaculty._id, selectedSubjects));
+                if (response.success) {
+                  toast.success('Subjects assigned successfully');
+                  fetchFaculty();  // Refresh faculty list
+                  setAssignSubjectDialogOpen(false);
+                  setSelectedSubjects([]);
+                  setSubjectSearchTerm('');
+                } else {
+                  toast.error(response.error?.message || 'Failed to assign subjects');
+                }
+              } catch (error) {
+                console.error('Error assigning subjects:', error);
+                toast.error('Failed to assign subjects');
+              }
+            }}
+            startIcon={<AssignmentIcon />}
+          >
+            Assign Selected Subjects
           </Button>
         </DialogActions>
       </Dialog>

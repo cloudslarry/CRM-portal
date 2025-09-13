@@ -29,6 +29,7 @@ const {
   getDashboardData,
   getAnalytics,
   assignAllStudentsToHostels,
+  assignSubjectToFaculty,
   addApplicant,
   getAllApplicants,
   updateApplicantStatus,
@@ -180,5 +181,10 @@ router.delete(
   passport.authenticate("jwt", { session: false }),
   deleteApplicant
 );
-
+// Assign subject to faculty
+router.post(
+  "/assign-subject",
+  passport.authenticate("jwt", { session: false }),
+  assignSubjectToFaculty
+);
 module.exports = router;
