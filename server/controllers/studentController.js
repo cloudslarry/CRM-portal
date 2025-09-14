@@ -132,6 +132,33 @@ exports.getAllStudents = async (req, res, next) => {
   }
 };
 
+// Get all students for chat selection (simplified version)
+exports.getAllStudentsForChat = async (req, res, next) => {
+  try {
+    const students = await Student.find({}, {
+      _id: 1,
+      name: 1,
+      registrationNumber: 1,
+      department: 1,
+      year: 1,
+      section: 1,
+      avatar: 1
+    }).sort({ name: 1 });
+
+    return res.status(200).json({ 
+      success: true,
+      data: students,
+      count: students.length 
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      message: "Error fetching students for chat", 
+      error: err.message 
+    });
+  }
+};
+
 exports.getStudentByName = async (req, res, next) => {
   try {
     const { name } = req.body;

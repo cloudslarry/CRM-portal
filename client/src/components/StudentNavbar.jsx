@@ -85,15 +85,15 @@ const StudentNavbar = () => {
     const { darkMode, toggleTheme } = useCustomTheme()
     
     useEffect(() => {
-      if(student.student.student.name)
+      if(student.student?.student?.name)
       {
         nameHandler();
       }
-    },[student.student.student.name])
+    },[student.student?.student?.name])
 
     useEffect(() => {
-      dispatch(newerChats(student.student.student.name));
-      dispatch(previousChats(student.student.student.name));
+      dispatch(newerChats(student.student?.student?.name));
+      dispatch(previousChats(student.student?.student?.name));
     },[student.newerChats.length])
 
     const logoutHandler = () => {
@@ -103,7 +103,7 @@ const StudentNavbar = () => {
     }
 
     const nameHandler = () => {
-      setName(student.student.student.name)
+      setName(student.student?.student?.name)
     }
 
     const home = () => {
@@ -153,7 +153,7 @@ const StudentNavbar = () => {
                       </IconButton>
                     </Tooltip>
                      <MenuItem>
-                     {student && <img onClick={home} src={student.student.student.avatar.url} style={{height:"28px",width:"28px",borderRadius:"50%"}}/> }
+                     {student && <img onClick={home} src={student.student?.student?.avatar?.url} style={{height:"28px",width:"28px",borderRadius:"50%"}}/> }
                      </MenuItem>
                      <MenuItem>
                        <Person onClick={updateProfile} style={{color:"#0077b6"}}/>

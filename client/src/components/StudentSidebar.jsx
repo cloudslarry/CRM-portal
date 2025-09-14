@@ -1,9 +1,10 @@
-import React from 'react'
-import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Typography, useTheme, useMediaQuery } from '@mui/material'
-import { Dashboard as DashboardIcon, LibraryBooks as SubjectsIcon, Assessment as PerformanceIcon, Group as AttendanceIcon, Search as SearchIcon, Chat as ChatIcon, ExitToApp as ExitToAppIcon, Settings as SettingsIcon, Person as PersonIcon, Home as HomeIcon } from '@mui/icons-material'
+import React, { useState, useEffect } from 'react'
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Typography, useTheme, useMediaQuery, Badge } from '@mui/material'
+import { Dashboard as DashboardIcon, LibraryBooks as SubjectsIcon, Assessment as PerformanceIcon, Group as AttendanceIcon, Search as SearchIcon, Chat as ChatIcon, Message as MessageIcon, ExitToApp as ExitToAppIcon, Settings as SettingsIcon, Person as PersonIcon, Home as HomeIcon } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { studentLogout } from '../redux/actions/studentAction'
+import api from '../config/api'
 
 const StudentSidebar = ({ open, onClose, width = 280 }) => {
   const navigate = useNavigate()
@@ -12,6 +13,38 @@ const StudentSidebar = ({ open, onClose, width = 280 }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const dispatch = useDispatch()
   const student = useSelector((s) => s.student)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    const fetchUnreadNotifications = async () => {
+      try {
+        if (student.isAuthenticated && student.student?.student?._id) {
+          const response = await api.get(`/api/chat/notifications/${student.student.student._id}`);
+          if (response.data.success) {
+            setUnreadNotifications(response.data.data.pagination.unreadCount);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchUnreadNotifications();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchUnreadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [student.isAuthenticated, student.student?.student?._id]);
+
+  // Listen for navigation to chat page to update notification count
+  useEffect(() => {
+    if (location.pathname === '/student/chat') {
+      // When user navigates to chat, reduce notification count
+      setUnreadNotifications(prev => Math.max(0, prev - 1));
+    }
+  }, [location.pathname]);
 
   const items = [
     { label: 'Dashboard', icon: <DashboardIcon/>, path: '/home', color: 'primary' },
@@ -22,7 +55,7 @@ const StudentSidebar = ({ open, onClose, width = 280 }) => {
     { label: 'College Fees', icon: <HomeIcon/>, path: '/student/college/fees', color: 'info' },
     { label: 'Hostel Fees', icon: <HomeIcon/>, path: '/student/hostel/fees', color: 'info' },
     { label: 'Search', icon: <SearchIcon/>, path: '/student/search', color: 'secondary' },
-    { label: 'Chat List', icon: <ChatIcon/>, path: '/student/chatList', color: 'error' },
+    { label: 'Start Chat', icon: <MessageIcon/>, path: '/student/chat', color: 'success', hasNotification: true },
     { label: 'Settings', icon: <SettingsIcon/>, path: '/student/settings', color: 'secondary' },
   ]
 
@@ -72,7 +105,27 @@ const StudentSidebar = ({ open, onClose, width = 280 }) => {
                 '&:hover': { backgroundColor: isActive(item.path) ? 'primary.dark' : 'action.hover' }
               }}
             >
-              <ListItemIcon sx={{ minWidth: 40, color: isActive(item.path) ? 'common.white' : `${item.color}.main` }}>{item.icon}</ListItemIcon>
+              <ListItemIcon sx={{ minWidth: 40, color: isActive(item.path) ? 'common.white' : `${item.color}.main` }}>
+                {item.hasNotification && unreadNotifications > 0 ? (
+                  <Badge 
+                    badgeContent={unreadNotifications} 
+                    color="error" 
+                    invisible={unreadNotifications === 0}
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: '0.7rem',
+                        minWidth: '16px',
+                        height: '16px',
+                        borderRadius: '8px'
+                      }
+                    }}
+                  >
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
               {open && <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: isActive(item.path) ? 600 : 400 }} />}
             </ListItemButton>
           </ListItem>

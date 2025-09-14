@@ -13,12 +13,12 @@ const StudentUpdateProfile = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const [email,setEmail] = useState(student.student.student.email);
-    const [mobile,setMobile] = useState(student.student.student.studentMobileNumber);
-    const [fatherName,setFatherName] = useState(student.student.student.fatherName);
-    const [fatherMobile,setFatherMobile] = useState(student.student.student.fatherMobileNumber);
-    const [avatar,setAvatar] = useState(student.student.student.avatar.url);
-    const [avatarPreview,setAvatarPreview] = useState(student.student.student.avatar.url);
+    const [email,setEmail] = useState(student.student?.student?.email);
+    const [mobile,setMobile] = useState(student.student?.student?.studentMobileNumber);
+    const [fatherName,setFatherName] = useState(student.student?.student?.fatherName);
+    const [fatherMobile,setFatherMobile] = useState(student.student?.student?.fatherMobileNumber);
+    const [avatar,setAvatar] = useState(student.student?.student?.avatar?.url);
+    const [avatarPreview,setAvatarPreview] = useState(student.student?.student?.avatar?.url);
 
     const imageHandler = (e) => {
        const reader = new FileReader();
@@ -33,7 +33,7 @@ const StudentUpdateProfile = () => {
         myForm.append("email",email);
         myForm.append("fatherName",fatherName);
         myForm.append("fatherMobileNumber",fatherMobile);
-        myForm.append("registrationNumber",student.student.student.registrationNumber);
+        myForm.append("registrationNumber",student.student?.student?.registrationNumber);
         myForm.append("avatar",avatar);
         dispatch(studentUpdate(myForm));
         toast.success("Please login again to view updates");

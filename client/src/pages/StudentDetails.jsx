@@ -94,7 +94,7 @@ const StudentDetails = () => {
   return (
     <>
     {
-        !student.isAuthenticated || registrationNumber === student.student.student.registrationNumber ?(
+        !student.isAuthenticated || registrationNumber === student.student?.student?.registrationNumber ?(
             navigate('/')
         ):(
             <>
@@ -105,7 +105,7 @@ const StudentDetails = () => {
           <img src={student.regNumStudent?.avatar?.url} />
           <h3>{student.regNumStudent?.name}</h3>
           <h3>{registrationNumber}</h3>
-          <Link to={`/chat/${student.student.student.registrationNumber}.${registrationNumber}`}>Message</Link>
+          <Link to={`/chat/${student.student?.student?.registrationNumber}.${registrationNumber}`}>Message</Link>
       </Header>
       <ProfileInfo>
           <ProfileInfoItem>

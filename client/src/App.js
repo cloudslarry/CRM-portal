@@ -122,7 +122,6 @@ if (window.localStorage.facultyToken) {
 }
 
 function App() {
-  const store = useSelector((store) => store);
   return (
     <>
       <Router>
@@ -233,6 +232,7 @@ function App() {
           />
           <Route exact path="/student/search" element={<StudentSearch />} />
           <Route exact path="/student/chatList" element={<StudentChats />} />
+          <Route exact path="/student/chat" element={<Chat />} />
           <Route
             exact
             path="/profile/:registrationNumber"

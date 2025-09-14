@@ -11,7 +11,6 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 const FacultyAttendance = () => {
-    const store = useSelector((store) => store);
     const faculty = useSelector((store) => store.faculty);
     const navigate = useNavigate();
     const dispatch = useDispatch();

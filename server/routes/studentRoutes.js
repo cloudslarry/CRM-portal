@@ -6,6 +6,7 @@ const upload = require("../utils/multer");
 const {
   studentLogin,
   getAllStudents,
+  getAllStudentsForChat,
   getAllMarks,
   getAllSubjects,
   checkAttendance,
@@ -83,6 +84,11 @@ router.post(
   "/getAllStudents",
   passport.authenticate("jwt", { session: false }),
   getAllStudents
+);
+router.get(
+  "/getAllStudentsForChat",
+  passport.authenticate("jwt", { session: false }),
+  getAllStudentsForChat
 );
 router.post(
   "/getStudentByRegNum",

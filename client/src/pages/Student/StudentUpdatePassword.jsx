@@ -24,7 +24,7 @@ const StudentUpdatePassword = () => {
           toast.error('Passwords do not match');
           return;
         }
-        dispatch(studentUpdatePassword({oldPassword,newPassword,confirmNewPassword,registrationNumber:student.student.student.registrationNumber}))
+        dispatch(studentUpdatePassword({oldPassword,newPassword,confirmNewPassword,registrationNumber:student.student?.student?.registrationNumber}))
         toast.success("Password Updated Successfully..Please Login Again");
         dispatch(studentLogout());
         navigate('/')

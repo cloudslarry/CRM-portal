@@ -10,7 +10,6 @@ import {fetchStudents,uploadMarks} from '../../redux/actions/facultyAction'
 import toast from 'react-hot-toast'
 
 const FacultyUploadMarks = () => {
-    const store = useSelector((store) => store)
     const faculty = useSelector((store) => store.faculty);
     const navigate = useNavigate();
     const dispatch = useDispatch();
