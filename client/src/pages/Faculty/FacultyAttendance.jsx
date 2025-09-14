@@ -53,11 +53,11 @@ const FacultyAttendance = () => {
     })
 
     useEffect(() => {
-        if (store.error) {
-            setError(store.error)
+        if (faculty.error) {
+            setError(faculty.error)
             setIsLoading(false)
         }
-    }, [store.error])
+    }, [faculty.error])
 
     const getStudents = (e) => {
         e.preventDefault();

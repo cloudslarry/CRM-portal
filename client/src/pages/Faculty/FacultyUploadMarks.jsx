@@ -26,8 +26,8 @@ const FacultyUploadMarks = () => {
     const [isFetchingStudents,setIsFetchingStudents] = useState(true);
     const [loading, setLoading] = useState(false)
 
-    useEffect(() => { if (store.error) setError(store.error) }, [store.error])
-    useEffect(() => { if (store.errorHelper) setErrorHelper(store.errorHelper) }, [store.errorHelper])
+    useEffect(() => { if (faculty.error) setError(faculty.error) }, [faculty.error])
+    useEffect(() => { if (faculty.errorHelper) setErrorHelper(faculty.errorHelper) }, [faculty.errorHelper])
 
     const handleInputChange = (value,_id) => {
         const newMarks = [...marks];

@@ -4,6 +4,7 @@ import adminReducer from "./adminReducer";
 import studentReducer from "./studentReducer";
 import hostelReducer from "./hostelReducer";
 import collegeFeeReducer from "./collegeFeeReducer";
+import departmentReducer from "./departmentReducer";
 import errorReducerHelper from "./errorReducerHelper";
 import errorReducer from "./errorReducer";
 
@@ -13,6 +14,7 @@ export default combineReducers({
   student: studentReducer,
   hostel: hostelReducer,
   collegeFees: collegeFeeReducer,
+  department: departmentReducer,
   error: errorReducer,
   errorHelper: errorReducerHelper,
 });

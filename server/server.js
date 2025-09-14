@@ -220,8 +220,10 @@ const adminCollegeFeeRoutes = require("./routes/admin/collegeFeeRoutes");
 const studentCollegeFeeRoutes = require("./routes/student/collegeFeeRoutes");
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chatRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
 console.log("✅ auth.js file has been loaded successfully!");
 console.log("✅ chatRoutes.js file has been loaded successfully!");
+console.log("✅ departmentRoutes.js file has been loaded successfully!");
 
 // Health check route
 app.get("/", (req, res) => {
@@ -242,6 +244,7 @@ app.use("/api/student/college", studentCollegeFeeRoutes);
 app.use("/api/student/receipts", studentReceiptRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/department', departmentRoutes);
 // REMOVED: The broad alias `app.use('/api/student', studentReceiptRoutes)`
 // was removed to prevent conflicts with other student routes.
 
