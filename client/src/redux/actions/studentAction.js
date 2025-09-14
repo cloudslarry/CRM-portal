@@ -20,9 +20,12 @@ export const studentLogin = (studentCredentials) => async (dispatch) => {
   try {
     const { data } = await api.post("/api/student/login", studentCredentials);
     const { token } = data;
-    localStorage.setItem("studentToken", token);
-    authToken(token);
-    const decoded = jwtDecode(token);
+    
+    // FIXED: Strip "Bearer " prefix if present before storing
+    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+    localStorage.setItem("studentToken", cleanToken);
+    authToken(cleanToken);
+    const decoded = jwtDecode(cleanToken);
     dispatch(setStudentUser(decoded)); // Using the action creator
   } catch (err) {
     dispatch({

@@ -19,8 +19,10 @@ const StudentSidebar = ({ open, onClose, width = 280 }) => {
   useEffect(() => {
     const fetchUnreadNotifications = async () => {
       try {
-        if (student.isAuthenticated && student.student?.student?._id) {
-          const response = await api.get(`/api/chat/notifications/${student.student.student._id}`);
+        // FIXED: Use correct path to access student ID from JWT token
+        const studentId = student.student?.id || student.student?.student?._id;
+        if (student.isAuthenticated && studentId) {
+          const response = await api.get(`/api/chat/notifications/${studentId}`);
           if (response.data.success) {
             setUnreadNotifications(response.data.data.pagination.unreadCount);
           }
@@ -36,7 +38,7 @@ const StudentSidebar = ({ open, onClose, width = 280 }) => {
     const interval = setInterval(fetchUnreadNotifications, 30000);
     
     return () => clearInterval(interval);
-  }, [student.isAuthenticated, student.student?.student?._id]);
+  }, [student.isAuthenticated, student.student?.id, student.student?.student?._id]);
 
   // Listen for navigation to chat page to update notification count
   useEffect(() => {

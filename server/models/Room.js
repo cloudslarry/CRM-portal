@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const roomSchema = new Schema({
   hostel: {
     type: Schema.Types.ObjectId,
-    ref: "hostel",
+    ref: "Hostel",
     required: true,
   },
   roomNumber: {
@@ -26,7 +26,7 @@ const roomSchema = new Schema({
   },
   students: [{
     type: Schema.Types.ObjectId,
-    ref: "student",
+    ref: "Student",
   }],
   status: {
     type: String,
@@ -42,4 +42,4 @@ const roomSchema = new Schema({
 });
 
 module.exports =
-  mongoose.models.room || mongoose.model("room", roomSchema);
+  mongoose.models.Room || mongoose.model("Room", roomSchema);

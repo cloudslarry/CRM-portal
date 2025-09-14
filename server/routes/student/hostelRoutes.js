@@ -32,16 +32,29 @@ router.get("/notices/my-hostel", async (req, res, next) => {
   try {
     // Get student's hostel info
     const student = req.user;
+    
+    // DEBUG: Log student data
+    console.log('Student hostel notices request:', {
+      studentId: student._id,
+      studentName: student.name,
+      registrationNumber: student.registrationNumber,
+      hasHostelInfo: !!student.hostelInfo,
+      hostelInfo: student.hostelInfo
+    });
+    
     if (!student.hostelInfo || !student.hostelInfo.hostel) {
-      return res.status(404).json({
-        success: false,
-        message: "Student is not assigned to any hostel"
-      });
+      console.log('Student has no hostel assignment, returning all notices');
+      // Return all notices if student is not assigned to a hostel
+      req.query = { limit: 50, page: 1 };
+      noticeController.getAllNotices(req, res, next);
+      return;
     }
     
+    console.log('Student has hostel assignment, fetching notices for hostel:', student.hostelInfo.hostel);
     req.params.hostelId = student.hostelInfo.hostel;
     noticeController.getNoticesByHostel(req, res, next);
   } catch (err) {
+    console.log('Error in hostel notices:', err.message);
     res.status(500).json({
       success: false,
       message: "Error fetching hostel notices",
@@ -106,7 +119,17 @@ router.get("/my-hostel", async (req, res, next) => {
   try {
     const student = req.user;
     
+    // DEBUG: Log student data
+    console.log('Student my-hostel request:', {
+      studentId: student._id,
+      studentName: student.name,
+      registrationNumber: student.registrationNumber,
+      hasHostelInfo: !!student.hostelInfo,
+      hostelInfo: student.hostelInfo
+    });
+    
     if (!student.hostelInfo || !student.hostelInfo.hostel) {
+      console.log('Student has no hostel assignment for my-hostel');
       return res.status(404).json({
         success: false,
         message: "Student is not assigned to any hostel"

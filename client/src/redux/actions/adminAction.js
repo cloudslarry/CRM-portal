@@ -141,10 +141,12 @@ export const adminLogin = (credentials) => {
       const { data } = await api.post("/api/admin/login", credentials);
       const { token } = data;
 
-      localStorage.setItem("adminToken", token);
-      authToken(token);
+      // FIXED: Strip "Bearer " prefix if present before storing
+      const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+      localStorage.setItem("adminToken", cleanToken);
+      authToken(cleanToken);
 
-      const decoded = jwtDecode(token);
+      const decoded = jwtDecode(cleanToken);
       dispatch(setAdmin(decoded));
     } catch (err) {
       dispatch({

@@ -26,11 +26,11 @@ const hostelSchema = new Schema({
   }],
   rooms: [{
     type: Schema.Types.ObjectId,
-    ref: "room",
+    ref: "Room",
   }],
 }, {
   timestamps: true,
 });
 
 module.exports =
-  mongoose.models.hostel || mongoose.model("hostel", hostelSchema);
+  mongoose.models.Hostel || mongoose.model("Hostel", hostelSchema);

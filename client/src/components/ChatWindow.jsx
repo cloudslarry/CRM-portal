@@ -440,7 +440,7 @@ const ChatWindow = ({
         ) : (
           messages.map((msg) => (
             <Box
-              key={msg.id || msg._id}
+              key={msg.uniqueKey || msg.id || msg._id}
               sx={{ 
                 display: 'flex', 
                 justifyContent: msg.sender === 'me' ? 'flex-end' : 'flex-start',

@@ -85,39 +85,83 @@ import {
   AdminApplications,
 } from "./pages";
 
-//Handle JWT Token
-if (window.localStorage.facultyToken) {
-  authToken(localStorage.facultyToken);
-  const decoded = jwtDecode(localStorage.facultyToken);
-  store.dispatch(setFacultyUser(decoded));
+//Handle JWT Token with validation
+const jwtPattern = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
 
-  //Check if token expired
-  const currentTime = Date.now() / 1000;
-  if (decoded.exp < currentTime) {
-    store.dispatch(facultyLogout());
-    window.location.href = "/";
+if (window.localStorage.facultyToken) {
+  try {
+    // FIXED: Strip "Bearer " prefix if present before using
+    const cleanToken = localStorage.facultyToken.startsWith('Bearer ') ? localStorage.facultyToken.substring(7) : localStorage.facultyToken;
+    
+    // Validate JWT format
+    if (!jwtPattern.test(cleanToken)) {
+      console.error('Invalid faculty token format, clearing...');
+      localStorage.removeItem('facultyToken');
+    } else {
+      authToken(cleanToken);
+      const decoded = jwtDecode(cleanToken);
+      store.dispatch(setFacultyUser(decoded));
+
+      //Check if token expired
+      const currentTime = Date.now() / 1000;
+      if (decoded.exp < currentTime) {
+        store.dispatch(facultyLogout());
+        window.location.href = "/";
+      }
+    }
+  } catch (error) {
+    console.error('Error processing faculty token:', error);
+    localStorage.removeItem('facultyToken');
   }
 } else if (window.localStorage.studentToken) {
-  authToken(localStorage.studentToken);
-  const decoded = jwtDecode(localStorage.studentToken);
-  store.dispatch(setStudentUser(decoded));
+  try {
+    // FIXED: Strip "Bearer " prefix if present before using
+    const cleanToken = localStorage.studentToken.startsWith('Bearer ') ? localStorage.studentToken.substring(7) : localStorage.studentToken;
+    
+    // Validate JWT format
+    if (!jwtPattern.test(cleanToken)) {
+      console.error('Invalid student token format, clearing...');
+      localStorage.removeItem('studentToken');
+    } else {
+      authToken(cleanToken);
+      const decoded = jwtDecode(cleanToken);
+      store.dispatch(setStudentUser(decoded));
 
-  //Check if token expired
-  const currentTime = Date.now() / 1000;
-  if (decoded.exp < currentTime) {
-    store.dispatch(studentLogout());
-    window.location.href = "/";
+      //Check if token expired
+      const currentTime = Date.now() / 1000;
+      if (decoded.exp < currentTime) {
+        store.dispatch(studentLogout());
+        window.location.href = "/";
+      }
+    }
+  } catch (error) {
+    console.error('Error processing student token:', error);
+    localStorage.removeItem('studentToken');
   }
 } else if (window.localStorage.adminToken) {
-  authToken(localStorage.adminToken);
-  const decoded = jwtDecode(localStorage.adminToken);
-  store.dispatch(setAdminUser(decoded));
+  try {
+    // FIXED: Strip "Bearer " prefix if present before using
+    const cleanToken = localStorage.adminToken.startsWith('Bearer ') ? localStorage.adminToken.substring(7) : localStorage.adminToken;
+    
+    // Validate JWT format
+    if (!jwtPattern.test(cleanToken)) {
+      console.error('Invalid admin token format, clearing...');
+      localStorage.removeItem('adminToken');
+    } else {
+      authToken(cleanToken);
+      const decoded = jwtDecode(cleanToken);
+      store.dispatch(setAdminUser(decoded));
 
-  //Check if token expired
-  const currentTime = Date.now() / 1000;
-  if (decoded.exp < currentTime) {
-    store.dispatch(adminLogout());
-    window.location.href = "/";
+      //Check if token expired
+      const currentTime = Date.now() / 1000;
+      if (decoded.exp < currentTime) {
+        store.dispatch(adminLogout());
+        window.location.href = "/";
+      }
+    }
+  } catch (error) {
+    console.error('Error processing admin token:', error);
+    localStorage.removeItem('adminToken');
   }
 }
 

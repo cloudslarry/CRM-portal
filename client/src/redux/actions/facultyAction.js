@@ -35,10 +35,12 @@ export const facultyLogin = (credentials) => {
       const { data } = await api.post("/api/faculty/login", credentials);
       const { token } = data;
 
-      localStorage.setItem("facultyToken", token);
-      authToken(token);
+      // FIXED: Strip "Bearer " prefix if present before storing
+      const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+      localStorage.setItem("facultyToken", cleanToken);
+      authToken(cleanToken);
 
-      const decoded = jwtDecode(token);
+      const decoded = jwtDecode(cleanToken);
       dispatch(setFaculty(decoded));
     } catch (err) {
       dispatch({

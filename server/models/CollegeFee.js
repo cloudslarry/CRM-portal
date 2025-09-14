@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const collegeFeeSchema = new Schema({
 	student: {
 		type: Schema.Types.ObjectId,
-		ref: "student",
+		ref: "Student",
 		required: true,
 	},
 	amount: {
@@ -38,7 +38,7 @@ const collegeFeeSchema = new Schema({
 	],
 });
 
-module.exports =
-	mongoose.models.collegeFee || mongoose.model("collegeFee", collegeFeeSchema);
+	module.exports =
+	mongoose.models.CollegeFee || mongoose.model("CollegeFee", collegeFeeSchema);
 
 

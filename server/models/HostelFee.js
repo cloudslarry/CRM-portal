@@ -4,12 +4,12 @@ const { Schema } = mongoose;
 const hostelFeeSchema = new Schema({
   student: {
     type: Schema.Types.ObjectId,
-    ref: "student",
+    ref: "Student",
     required: true,
   },
   hostel: {
     type: Schema.Types.ObjectId,
-    ref: "hostel",
+    ref: "Hostel",
     required: true,
   },
   amount: {
@@ -42,4 +42,4 @@ const hostelFeeSchema = new Schema({
 });
 
 module.exports =
-  mongoose.models.hostelFee || mongoose.model("hostelFee", hostelFeeSchema);
+  mongoose.models.HostelFee || mongoose.model("HostelFee", hostelFeeSchema);

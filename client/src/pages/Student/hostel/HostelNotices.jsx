@@ -59,14 +59,41 @@ const HostelNotices = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch notices for student's hostel
-      const response = await studentHostelApi.getMyHostelNotices();
-      setNotices(response.data.result || []);
+      // Try to fetch notices for student's hostel first
+      try {
+        const response = await studentHostelApi.getMyHostelNotices();
+        setNotices(response.data.result || []);
+        return;
+      } catch (hostelErr) {
+        // If student is not assigned to hostel, try to fetch all notices
+        if (hostelErr.response?.status === 404) {
+          console.log('Student not assigned to hostel, fetching all notices...');
+          const allNoticesResponse = await studentHostelApi.getAllNotices();
+          setNotices(allNoticesResponse.data.result || []);
+          setError('You are not assigned to any hostel yet. Showing all notices.');
+          toast.info('You are not assigned to any hostel yet. Showing all notices.');
+          return;
+        }
+        throw hostelErr; // Re-throw if it's not a 404 error
+      }
 
     } catch (err) {
       console.error('Error fetching notices:', err);
-      setError('Failed to load hostel notices');
-      toast.error('Failed to load hostel notices');
+      
+      // FIXED: Better error handling for different error types
+      if (err.response?.status === 403) {
+        setError('Access denied. Please check your authentication.');
+        toast.error('Access denied. Please login again.');
+      } else if (err.response?.status === 404) {
+        setError('You are not assigned to any hostel yet.');
+        toast.error('You are not assigned to any hostel yet.');
+      } else if (err.response?.status === 401) {
+        setError('Authentication required. Please login again.');
+        toast.error('Authentication required. Please login again.');
+      } else {
+        setError('Failed to load hostel notices');
+        toast.error('Failed to load hostel notices');
+      }
     } finally {
       setLoading(false);
     }
@@ -323,31 +350,22 @@ const HostelNotices = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {searchTerm || filterType !== 'all' 
                   ? 'Try adjusting your search or filter criteria'
-                  : 'No notices have been posted yet'
+                  : error 
+                    ? 'There was an error loading notices'
+                    : 'No notices have been posted yet'
                 }
               </Typography>
               <Button
-                variant="outlined"
+                variant="contained"
                 startIcon={<RefreshIcon />}
                 onClick={fetchNotices}
+                disabled={loading}
               >
-                Refresh
+                {loading ? 'Loading...' : 'Refresh Notices'}
               </Button>
             </CardContent>
           </Card>
         )}
-
-        {/* Refresh Button */}
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Button
-            variant="contained"
-            startIcon={<RefreshIcon />}
-            onClick={fetchNotices}
-            disabled={loading}
-          >
-            Refresh Notices
-          </Button>
-        </Box>
       </Container>
     </StudentLayout>
   );

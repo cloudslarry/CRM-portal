@@ -578,6 +578,9 @@ const getUserNotifications = async (req, res) => {
     const { userId } = req.params;
     const { page = 1, limit = 20 } = req.query;
 
+    // DEBUG: Log user ID for troubleshooting
+    console.log('getUserNotifications called with userId:', userId, 'type:', typeof userId);
+
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -585,16 +588,34 @@ const getUserNotifications = async (req, res) => {
       });
     }
 
+    // FIXED: Validate ObjectId format
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.log('Invalid user ID format:', userId);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format'
+      });
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const notifications = await Notification.find({ recipient: userId })
+    // FIXED: Use recipientType filter to match the user type
+    const notifications = await Notification.find({ 
+      recipient: userId,
+      recipientType: 'student' // Add this filter
+    })
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(skip);
 
-    const totalNotifications = await Notification.countDocuments({ recipient: userId });
+    const totalNotifications = await Notification.countDocuments({ 
+      recipient: userId,
+      recipientType: 'student' // Add this filter
+    });
     const unreadCount = await Notification.countDocuments({ 
       recipient: userId, 
+      recipientType: 'student', // Add this filter
       isRead: false 
     });
 

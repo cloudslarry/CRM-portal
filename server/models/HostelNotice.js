@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const hostelNoticeSchema = new Schema({
   hostel: {
     type: Schema.Types.ObjectId,
-    ref: "hostel",
+    ref: "Hostel",
     required: true,
   },
   title: {
@@ -17,7 +17,7 @@ const hostelNoticeSchema = new Schema({
   },
   author: {
     type: Schema.Types.ObjectId,
-    ref: "admin",
+    ref: "Admin",
     required: true,
   },
   attachments: [{
@@ -35,4 +35,4 @@ const hostelNoticeSchema = new Schema({
 });
 
 module.exports =
-  mongoose.models.hostelNotice || mongoose.model("hostelNotice", hostelNoticeSchema);
+  mongoose.models.HostelNotice || mongoose.model("HostelNotice", hostelNoticeSchema);

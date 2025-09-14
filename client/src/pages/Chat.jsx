@@ -89,8 +89,10 @@ const Chat = () => {
   const [lastLoadTime, setLastLoadTime] = useState(0); // Prevent rapid reloads
   const [recentChats, setRecentChats] = useState(new Set()); // Track students who have been chatted with
   const [processedMessages, setProcessedMessages] = useState(new Set()); // Track processed messages to prevent duplicates
+  const [isSwitchingChat, setIsSwitchingChat] = useState(false); // Track when switching chats
+  const [sentMessages, setSentMessages] = useState(new Set()); // Track messages sent by current user
 
-  // Load recent chats from localStorage on component mount
+  // Load recent chats from localStorage on component mount - IMPROVED: Better persistence
   useEffect(() => {
     const savedRecentChats = localStorage.getItem('recentChats');
     if (savedRecentChats) {
@@ -100,15 +102,21 @@ const Chat = () => {
         console.log('Loaded recent chats from localStorage:', parsedChats);
       } catch (error) {
         console.error('Error loading recent chats from localStorage:', error);
+        // Clear corrupted data
+        localStorage.removeItem('recentChats');
       }
     }
   }, []);
 
-  // Save recent chats to localStorage whenever it changes
+  // Save recent chats to localStorage whenever it changes - IMPROVED: Better persistence
   useEffect(() => {
     if (recentChats.size > 0) {
-      localStorage.setItem('recentChats', JSON.stringify([...recentChats]));
-      console.log('Saved recent chats to localStorage:', [...recentChats]);
+      try {
+        localStorage.setItem('recentChats', JSON.stringify([...recentChats]));
+        console.log('Saved recent chats to localStorage:', [...recentChats]);
+      } catch (error) {
+        console.error('Error saving recent chats to localStorage:', error);
+      }
     }
   }, [recentChats]);
 
@@ -134,11 +142,19 @@ const Chat = () => {
     }
     
     const searchLower = debouncedSearchTerm.toLowerCase();
-    return students.filter(student =>
+    const filtered = students.filter(student =>
       student.name.toLowerCase().includes(searchLower) ||
       student.registrationNumber.toLowerCase().includes(searchLower) ||
       student.department.toLowerCase().includes(searchLower)
     );
+    
+    console.log('Search results:', { 
+      searchTerm: debouncedSearchTerm, 
+      totalStudents: students.length, 
+      filteredCount: filtered.length 
+    });
+    
+    return filtered;
   }, [students, debouncedSearchTerm]);
 
   // Get current user info - IMPROVED: Better fallbacks for file uploads
@@ -271,16 +287,19 @@ const Chat = () => {
     }
   };
 
-  // Periodic refresh to keep conversations updated
+  // Periodic refresh to keep conversations updated - IMPROVED: Less frequent updates
   useEffect(() => {
     if (effectiveUserId && allStudents.length > 0) {
       const interval = setInterval(() => {
-        refreshConversations();
-      }, 30000); // Refresh every 30 seconds
+        // Only refresh if not currently loading
+        if (!studentsLoading) {
+          refreshConversations();
+        }
+      }, 60000); // Refresh every 60 seconds instead of 30
 
       return () => clearInterval(interval);
     }
-  }, [effectiveUserId, allStudents.length]);
+  }, [effectiveUserId, allStudents.length, studentsLoading]);
   
   console.log('User ID Debug:', {
     currentUserId,
@@ -427,13 +446,20 @@ const Chat = () => {
     });
   }, [student, admin, currentUserId, effectiveUserId, currentUserName]);
 
-  // Load students for chat selection - FIXED: Prevent infinite loops
+  // Load students for chat selection - FIXED: Prevent infinite loops and continuous loading
   useEffect(() => {
     if (effectiveUserId && !studentsLoading) {
       console.log('Effective user ID found, loading students...', effectiveUserId);
       loadStudents();
     } else if (!effectiveUserId) {
       console.log('No effective user ID, waiting for authentication...');
+      // FIXED: Clear loading state if no user ID after timeout
+      const timeoutId = setTimeout(() => {
+        if (!effectiveUserId) {
+          setStudentsLoading(false);
+        }
+      }, 3000);
+      return () => clearTimeout(timeoutId);
     }
   }, [effectiveUserId]); // Removed studentsLoading dependency to prevent loops
 
@@ -445,10 +471,27 @@ const Chat = () => {
     }
   }, [authLoadingTimeout, effectiveUserId]);
 
-  // Load unread message counts for each student - FIXED: Prevent loops
+  // FIXED: Additional fallback to ensure students are loaded
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      if (studentsLoading && allStudents.length === 0) {
+        console.log('Fallback: Loading students after timeout...');
+        loadStudents();
+      }
+    }, 5000); // 5 second fallback
+
+    return () => clearTimeout(fallbackTimer);
+  }, [studentsLoading, allStudents.length]);
+
+  // Load unread message counts for each student - FIXED: Prevent loops and continuous loading
   useEffect(() => {
     if (effectiveUserId && allStudents.length > 0 && !studentsLoading) {
-      loadUnreadCounts();
+      // Add a small delay to prevent rapid successive calls
+      const timeoutId = setTimeout(() => {
+        loadUnreadCounts();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [effectiveUserId, allStudents.length]); // Only depend on length, not the array itself
 
@@ -512,8 +555,10 @@ const Chat = () => {
       
       // Always update the students list
       setStudents(filteredStudents);
+      // FIXED: Clear loading state when students are loaded
+      setStudentsLoading(false);
     }
-  }, [showAllStudents, allStudents.length]); // FIXED: Only depend on length to prevent infinite loops
+  }, [showAllStudents, allStudents.length, recentChats]); // FIXED: Added recentChats dependency
 
 
   const loadStudents = async () => {
@@ -573,10 +618,12 @@ const Chat = () => {
         } else {
           // If no user ID, just show all students
           setStudents(studentsWithChatData);
+          setStudentsLoading(false); // FIXED: Clear loading state immediately
         }
       } else {
         console.error('API returned success: false', response.data);
         toast.error('Failed to load students: ' + (response.data.message || 'Unknown error'));
+        setStudentsLoading(false); // FIXED: Clear loading state on API failure
       }
     } catch (error) {
       console.error('Error loading students:', error);
@@ -586,8 +633,7 @@ const Chat = () => {
         status: error.response?.status
       });
       toast.error('Failed to load students: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setStudentsLoading(false); // FIXED: Always clear loading state
+      setStudentsLoading(false); // FIXED: Clear loading state on error
     }
   };
 
@@ -615,8 +661,17 @@ const Chat = () => {
         const updatedAllStudents = studentsToUpdate.map(student => {
           const conversation = conversations.find(conv => conv.userId === student._id);
           if (conversation && conversation.lastMessage) {
-            // Add to recent chats if they have a conversation
-            setRecentChats(prev => new Set([...prev, student._id]));
+            // Add to recent chats if they have a conversation - IMPROVED: Better persistence
+            setRecentChats(prev => {
+              const newSet = new Set([...prev, student._id]);
+              // Save to localStorage immediately for persistence
+              try {
+                localStorage.setItem('recentChats', JSON.stringify([...newSet]));
+              } catch (error) {
+                console.error('Error saving recent chats to localStorage:', error);
+              }
+              return newSet;
+            });
             
             // IMPROVED: Better message display like WhatsApp
             let displayMessage = conversation.lastMessage.message || '';
@@ -686,6 +741,7 @@ const Chat = () => {
       setAllStudents(updatedAllStudents);
     } finally {
       setStudentsLoading(false); // FIXED: Always clear loading state
+      console.log('Unread counts loading completed');
     }
   };
 
@@ -739,63 +795,50 @@ const Chat = () => {
       console.log('Room joined successfully:', data);
     });
 
-    // Message events - FIXED: Better duplicate prevention
+    // Message events - FIXED: Prevent duplicates from socket
     newSocket.on('new Message', (data) => {
-      console.log('New message received:', data);
+      console.log('New message received from socket:', data);
+      
+      // FIXED: Don't handle socket messages when switching chats
+      if (isSwitchingChat) {
+        console.log('Switching chats, ignoring socket message');
+        return;
+      }
+      
+      // FIXED: Don't add messages from socket if they were sent by current user (already added locally)
+      if (data.senderId === effectiveUserId) {
+        console.log('Message sent by current user, skipping socket duplicate');
+        return;
+      }
+      
+      // FIXED: Additional check against sent messages cache
+      if (sentMessages.has(data._id)) {
+        console.log('Message was sent locally, skipping socket duplicate');
+        return;
+      }
+      
+      // Only add message if it's for the current conversation
+      const isCurrentConversation = (data.senderId === effectiveUserId && data.receiverId === selectedStudent?._id) ||
+                                  (data.senderId === selectedStudent?._id && data.receiverId === effectiveUserId);
+      
+      if (!isCurrentConversation) {
+        console.log('Message not for current conversation, ignoring');
+        return;
+      }
+      
+      // FIXED: Additional check to prevent adding messages when switching chats
+      if (!selectedStudent || (selectedStudent._id !== data.senderId && selectedStudent._id !== data.receiverId)) {
+        console.log('Message not for currently selected student, ignoring');
+        return;
+      }
+      
+      // FIXED: Simple duplicate check by message ID
       setMessageArray(prev => {
-        // Only add message if it's for the current conversation
-        const isCurrentConversation = (data.senderId === effectiveUserId && data.receiverId === selectedStudent?._id) ||
-                                    (data.senderId === selectedStudent?._id && data.receiverId === effectiveUserId);
-        
-        if (!isCurrentConversation) {
-          console.log('Message not for current conversation, ignoring');
-          return prev;
-        }
-        
-        // STRICT duplicate prevention - IMPROVED
-        const messageKey = `${data._id}_${data.senderId}_${data.receiverId}_${data.createdAt}`;
-        
-        if (processedMessages.has(messageKey)) {
-          console.log('Message already processed, skipping duplicate:', messageKey);
-          return prev;
-        }
-        
-        // More aggressive duplicate detection
-        const messageExists = prev.some(msg => {
-          // Check by ID first (most reliable)
-          if (msg._id === data._id) {
-            console.log('Duplicate message detected by ID:', data._id);
-            return true;
-          }
-          
-          // Check by content, sender, receiver and timing for exact duplicates
-          if (msg.message === data.message && 
-              msg.senderId === data.senderId && 
-              msg.receiverId === data.receiverId) {
-            const timeDiff = Math.abs(new Date(msg.createdAt) - new Date(data.createdAt));
-            if (timeDiff < 10000) { // Within 10 seconds
-              console.log('Duplicate message detected by content and timing:', data.message);
-              return true;
-            }
-          }
-          
-          // Check for identical messages with same timestamp
-          if (msg.timestamp === new Date(data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) &&
-              msg.message === data.message) {
-            console.log('Duplicate message detected by timestamp and content:', data.message);
-            return true;
-          }
-          
-          return false;
-        });
-        
+        const messageExists = prev.some(msg => msg._id === data._id);
         if (messageExists) {
           console.log('Message already exists, skipping duplicate');
           return prev;
         }
-        
-        // Mark message as processed IMMEDIATELY
-        setProcessedMessages(prev => new Set([...prev, messageKey]));
         
         // Format the message for display
         const formattedMessage = {
@@ -807,15 +850,26 @@ const Chat = () => {
             message: data.replyMessage,
             text: data.replyMessage,
             sender: data.replySenderId === effectiveUserId ? 'me' : 'other'
-          } : null
+          } : null,
+          // FIXED: Add unique key for React rendering
+          uniqueKey: `${data._id}_${data.senderId}_${data.receiverId}_${data.createdAt}_${Date.now()}`
         };
         
-        console.log('Adding new message to chat:', formattedMessage);
+        console.log('Adding new message to chat from socket:', formattedMessage);
         
         // Refresh unread counts and reorder list when new message arrives
         if (data.senderId !== effectiveUserId) {
-          // Add to recent chats when receiving a message
-          setRecentChats(prev => new Set([...prev, data.senderId]));
+          // Add to recent chats when receiving a message - IMPROVED: Better persistence
+          setRecentChats(prev => {
+            const newSet = new Set([...prev, data.senderId]);
+            // Save to localStorage immediately for persistence
+            try {
+              localStorage.setItem('recentChats', JSON.stringify([...newSet]));
+            } catch (error) {
+              console.error('Error saving recent chats to localStorage:', error);
+            }
+            return newSet;
+          });
           
           // Update the student list immediately for the sender - FIXED: Better message display
           setStudents(prevStudents => {
@@ -894,9 +948,6 @@ const Chat = () => {
             }
             return updatedAllStudents;
           });
-          
-          // REMOVED: Excessive API calls that were causing loops
-          // The local state updates above are sufficient for immediate UI updates
         }
         
         return [...prev, formattedMessage];
@@ -987,13 +1038,9 @@ const Chat = () => {
 
       socket.emit('join room', { room1: tempRoom1, room2: tempRoom2 });
       
-      // Load chat history only if we don't have messages for this conversation
-      if (messageArray.length === 0 || !messageArray.some(msg => 
-        (msg.senderId === effectiveUserId && msg.receiverId === selectedStudent._id) ||
-        (msg.senderId === selectedStudent._id && msg.receiverId === effectiveUserId)
-      )) {
-        loadChatHistory(selectedStudent._id);
-      }
+      // Always load fresh chat history when joining a room
+      console.log('Loading chat history for:', selectedStudent.name);
+      loadChatHistory(selectedStudent._id);
     }
   }, [selectedStudent, socket, isConnected, effectiveUserId]);
 
@@ -1006,13 +1053,20 @@ const Chat = () => {
     
     try {
       setIsLoading(true);
+      // FIXED: Clear messages before loading new ones to prevent duplicates
+      setMessageArray([]);
+      setProcessedMessages(new Set());
+      setSentMessages(new Set());
+      
+      console.log('Loading chat history for receiver:', receiverId);
       const response = await api.get(`/api/chat/${effectiveUserId}/${receiverId}`);
 
       if (response.data.success) {
         // Convert API messages to the format expected by the UI
-        const formattedMessages = response.data.data.messages.map(msg => ({
+        const formattedMessages = response.data.data.messages.map((msg, index) => ({
           _id: msg._id,
           message: msg.message,
+          text: msg.message, // Add text field for consistency
           sender: msg.senderId === effectiveUserId ? 'me' : 'other',
           senderId: msg.senderId,
           receiverId: msg.receiverId,
@@ -1027,9 +1081,12 @@ const Chat = () => {
             message: msg.replyMessage,
             text: msg.replyMessage,
             sender: msg.replySenderId === effectiveUserId ? 'me' : 'other'
-          } : null
+          } : null,
+          // FIXED: Add unique key for React rendering
+          uniqueKey: `${msg._id}_${msg.senderId}_${msg.receiverId}_${msg.createdAt}_${index}`
         }));
         
+        console.log('Loaded chat history:', formattedMessages.length, 'messages');
         setMessageArray(formattedMessages);
       }
     } catch (error) {
@@ -1053,20 +1110,48 @@ const Chat = () => {
     }
   }, [messageArray.length]); // Only depend on message count, not the entire array
 
-  const handleStudentSelect = (student) => {
-    setSelectedStudent(student);
-    // Only clear messages if switching to a different student
-    if (selectedStudent?._id !== student._id) {
+  // FIXED: Cleanup effect to clear messages when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear messages and processed messages when component unmounts
       setMessageArray([]);
-      // FIXED: Clear processed messages when switching conversations to prevent memory leaks
       setProcessedMessages(new Set());
+      setSentMessages(new Set());
+    };
+  }, []);
+
+  const handleStudentSelect = (student) => {
+    console.log('Selecting student:', student.name, 'Previous student:', selectedStudent?.name);
+    
+    // FIXED: Set switching flag to prevent socket message handling
+    setIsSwitchingChat(true);
+    
+    // FIXED: Always clear messages and processed messages when selecting any student
+    setMessageArray([]);
+    setProcessedMessages(new Set());
+    setSentMessages(new Set());
+    
+    // FIXED: Clear any pending socket messages for previous conversation
+    if (socket && selectedStudent) {
+      const oldRoom1 = `${effectiveUserId}_${selectedStudent._id}`;
+      const oldRoom2 = `${selectedStudent._id}_${effectiveUserId}`;
+      socket.emit('leave room', { room1: oldRoom1, room2: oldRoom2 });
     }
+    
+    setSelectedStudent(student);
+    
     if (isMobile) {
       setShowChat(true);
     }
     
     // Mark messages as read when opening conversation
     markMessagesAsRead(student._id);
+    
+    // FIXED: Re-enable socket message handling after a longer delay to ensure clean state
+    setTimeout(() => {
+      setIsSwitchingChat(false);
+      console.log('Chat switching completed, socket message handling re-enabled');
+    }, 1500);
   };
 
   const markMessagesAsRead = async (senderId) => {
@@ -1102,9 +1187,26 @@ const Chat = () => {
   };
 
   const handleBackToStudents = () => {
-    setShowChat(false);
-    setSelectedStudent(null);
+    // FIXED: Always clear messages when going back
     setMessageArray([]);
+    setProcessedMessages(new Set());
+    setSentMessages(new Set());
+    
+    // FIXED: Set switching flag to prevent socket message handling
+    setIsSwitchingChat(true);
+    
+    if (isMobile) {
+      setShowChat(false);
+      setSelectedStudent(null);
+    } else {
+      // Navigate back to student dashboard
+      navigate('/home');
+    }
+    
+    // FIXED: Re-enable socket message handling after cleanup
+    setTimeout(() => {
+      setIsSwitchingChat(false);
+    }, 500);
   };
 
   const handleSendMessage = async (messageData) => {
@@ -1343,53 +1445,22 @@ const Chat = () => {
               message: messageData.replyTo.message || messageData.replyTo.text,
               text: messageData.replyTo.message || messageData.replyTo.text,
               sender: messageData.replyTo.sender === 'me' ? 'me' : 'other'
-            } : null
+            } : null,
+            // FIXED: Add unique key for React rendering
+            uniqueKey: `${response.data.data._id}_${effectiveUserId}_${selectedStudent._id}_${response.data.data.createdAt}_${Date.now()}`
           };
 
-        // Add message locally for immediate UI update - FIXED: Better duplicate prevention
+        // Add message locally for immediate UI update - FIXED: Enhanced duplicate prevention
         setMessageArray(prev => {
-          // STRICT duplicate prevention for local messages
-          const messageKey = `${newMessage._id}_${newMessage.senderId}_${newMessage.receiverId}_${newMessage.createdAt}`;
-          
-          if (processedMessages.has(messageKey)) {
-            console.log('Message already processed locally, skipping duplicate:', messageKey);
-            return prev;
-          }
-          
-          const messageExists = prev.some(msg => {
-            // Check by ID first (most reliable)
-            if (msg._id === newMessage._id) {
-              console.log('Duplicate message detected by ID in local state:', newMessage._id);
-              return true;
-            }
-            
-            // Check by content and timing for exact duplicates
-            if (msg.message === newMessage.message && 
-                msg.senderId === newMessage.senderId && 
-                msg.receiverId === newMessage.receiverId) {
-              const timeDiff = Math.abs(new Date(msg.createdAt) - new Date(newMessage.createdAt));
-              if (timeDiff < 10000) { // Within 10 seconds
-                console.log('Duplicate message detected by content and timing in local state:', newMessage.message);
-                return true;
-              }
-            }
-            
-            // Check for identical messages with same timestamp
-            if (msg.timestamp === newMessage.timestamp && msg.message === newMessage.message) {
-              console.log('Duplicate message detected by timestamp and content in local state:', newMessage.message);
-              return true;
-            }
-            
-            return false;
-          });
-          
+          // Simple duplicate check by message ID
+          const messageExists = prev.some(msg => msg._id === newMessage._id);
           if (messageExists) {
             console.log('Message already exists locally, skipping duplicate');
             return prev;
           }
           
-          // Mark message as processed IMMEDIATELY
-          setProcessedMessages(prev => new Set([...prev, messageKey]));
+          // FIXED: Track sent message ID to prevent socket duplicates
+          setSentMessages(prev => new Set([...prev, newMessage._id]));
           
           console.log('Adding new message to local state:', newMessage);
           return [...prev, newMessage];
@@ -1413,8 +1484,17 @@ const Chat = () => {
         const currentTime = new Date();
         const timeString = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
-        // Add to recent chats when sending a message
-        setRecentChats(prev => new Set([...prev, selectedStudent._id]));
+        // Add to recent chats when sending a message - IMPROVED: Better persistence
+        setRecentChats(prev => {
+          const newSet = new Set([...prev, selectedStudent._id]);
+          // Save to localStorage immediately for persistence
+          try {
+            localStorage.setItem('recentChats', JSON.stringify([...newSet]));
+          } catch (error) {
+            console.error('Error saving recent chats to localStorage:', error);
+          }
+          return newSet;
+        });
         
         setStudents(prevStudents => {
           // Find the current student and move them to top
@@ -1476,34 +1556,9 @@ const Chat = () => {
           }
         });
         
-          // Emit socket event for real-time delivery to other users
-          if (socket && isConnected) {
-            const socketMessage = {
-              sender: currentUserName || 'Unknown User',
-              message: messageData.text || '',
-              room: room1 || `${effectiveUserId}_${selectedStudent._id}`,
-              senderId: effectiveUserId,
-              receiverId: selectedStudent._id,
-              senderName: currentUserName || 'Unknown User',
-              receiverName: selectedStudent.name || 'Unknown Receiver',
-              senderRegistrationNumber: currentUserRegNumber || 'Unknown',
-              receiverRegistrationNumber: selectedStudent.registrationNumber || 'Unknown',
-              _id: response.data.data._id,
-              fileUrl: response.data.data.fileUrl,
-              fileName: response.data.data.fileName,
-              fileType: response.data.data.fileType,
-              fileSize: response.data.data.fileSize,
-              createdAt: response.data.data.createdAt
-            };
-
-            console.log('Emitting socket message:', socketMessage);
-            try {
-              socket.emit("private message", socketMessage);
-            } catch (socketError) {
-              console.error('Socket emit error:', socketError);
-              // Don't show toast for socket errors as the message was already sent successfully
-            }
-          }
+          // FIXED: Don't emit socket event for sender's own messages to prevent duplicates
+          // The message is already added locally, and the server will handle delivery to other users
+          console.log('Message sent successfully, not emitting socket event to prevent duplicates');
         
         // REMOVED: Excessive API calls that were causing loops
         // The local state updates above are sufficient for immediate UI updates
@@ -1708,12 +1763,26 @@ const Chat = () => {
             bgcolor: darkMode ? '#2d2d2d' : '#f8f9fa'
           }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="h6" sx={{ 
-                fontWeight: 'bold',
-                color: darkMode ? '#fff' : '#333'
-              }}>
-                Chat
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <IconButton
+                  onClick={() => navigate('/home')}
+                  sx={{ 
+                    color: darkMode ? '#fff' : '#333',
+                    '&:hover': {
+                      bgcolor: darkMode ? '#333' : '#f0f0f0'
+                    }
+                  }}
+                  title="Back to Dashboard"
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 'bold',
+                  color: darkMode ? '#fff' : '#333'
+                }}>
+                  Chat
+                </Typography>
+              </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="caption" sx={{ 
                   color: darkMode ? '#b0b0b0' : '#666',
@@ -1723,10 +1792,21 @@ const Chat = () => {
                 </Typography>
                 <IconButton
                   onClick={() => {
-                    console.log('Manual refresh triggered');
-                    loadStudents();
-                    refreshConversations();
-                    toast.success('Refreshing students and conversations...');
+                    if (!studentsLoading) {
+                      console.log('Manual refresh triggered');
+                      loadStudents();
+                      refreshConversations();
+                      toast.success('Refreshing students and conversations...');
+                    } else {
+                      toast('Please wait, already loading...', {
+                        icon: '⏳',
+                        style: {
+                          borderRadius: '10px',
+                          background: '#333',
+                          color: '#fff',
+                        },
+                      });
+                    }
                   }}
                   sx={{
                     color: darkMode ? '#fff' : '#333',
@@ -1770,7 +1850,10 @@ const Chat = () => {
               size="small"
               placeholder="Search students..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                console.log('Search term changed:', e.target.value);
+                setSearchTerm(e.target.value);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -1810,6 +1893,9 @@ const Chat = () => {
             {studentsLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
                 <CircularProgress />
+                <Typography variant="body2" sx={{ ml: 2, color: darkMode ? '#b0b0b0' : '#666' }}>
+                  Loading students...
+                </Typography>
               </Box>
             ) : filteredStudents.length === 0 ? (
               <Box sx={{ 
@@ -1831,15 +1917,17 @@ const Chat = () => {
                   color: darkMode ? '#b0b0b0' : '#666',
                   mb: 1
                 }}>
-                  {showAllStudents ? 'No students found' : 'No recent chats'}
+                  {searchTerm ? 'No students found matching your search' : (showAllStudents ? 'No students found' : 'No recent chats')}
                 </Typography>
                 <Typography variant="body2" sx={{ 
                   color: darkMode ? '#888' : '#999',
                   mb: 2
                 }}>
-                  {showAllStudents 
-                    ? 'Try adjusting your search or check back later' 
-                    : 'Start a conversation by selecting a student from the list'
+                  {searchTerm 
+                    ? `No students match "${searchTerm}". Try a different search term.`
+                    : (showAllStudents 
+                      ? 'Try adjusting your search or check back later' 
+                      : 'Start a conversation by selecting a student from the list')
                   }
                 </Typography>
                 {!showAllStudents && (

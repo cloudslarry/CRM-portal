@@ -2,6 +2,18 @@ const HostelNotice = require("../models/HostelNotice");
 const Hostel = require("../models/Hostel");
 const Admin = require("../models/Admin");
 
+// Ensure models are properly registered
+const mongoose = require('mongoose');
+if (!mongoose.models.Admin) {
+  require('../models/Admin');
+}
+if (!mongoose.models.Hostel) {
+  require('../models/Hostel');
+}
+if (!mongoose.models.HostelNotice) {
+  require('../models/HostelNotice');
+}
+
 // Create notice
 exports.createNotice = async (req, res, next) => {
   try {

@@ -15,6 +15,27 @@ api.interceptors.request.use(
   (config) => {
     // The URL will now be relative, e.g., "/api/student/login"
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    
+    // DEBUG: Log authorization header for troubleshooting
+    if (config.headers.Authorization) {
+      console.log('Authorization header:', config.headers.Authorization.substring(0, 20) + '...');
+      
+      // FIXED: Validate JWT token format before sending request
+      const token = config.headers.Authorization.replace('Bearer ', '');
+      const jwtPattern = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+      
+      if (!jwtPattern.test(token)) {
+        console.error('Invalid JWT token detected in request, clearing...');
+        delete config.headers.Authorization;
+        // Clear invalid tokens from localStorage
+        localStorage.removeItem('studentToken');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('facultyToken');
+      }
+    } else {
+      console.log('No Authorization header found');
+    }
+    
     return config;
   },
   (error) => {
