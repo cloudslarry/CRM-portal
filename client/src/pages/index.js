@@ -24,6 +24,7 @@ export { default as AdminAddFaculty } from "./Admin/AdminAddFaculty";
 export { default as AdminAddSubject } from "./Admin/AdminAddSubject";
 export { default as AdminAddDepartment } from "./Admin/AdminAddDepartment";
 export { default as AdminGetDepartments } from "./Admin/AdminGetDepartments";
+export { default as AdminAssignHostel } from "./Admin/AdminAssignHostel";
 export { default as AdminSettings } from "./Admin/AdminSettings";
 export { default as FacultySettings } from "./Faculty/FacultySettings";
 export { default as StudentSettings } from "./Student/StudentSettings";
@@ -73,4 +74,5 @@ export { default as CollegeInfo } from "./Applicant/CollegeInfo";
 // Admin applicants management (placeholder)
 export { default as AdminApplicants } from "./Admin/AdminApplicants";
 export { default as AdminAddApplicant } from "./Admin/AdminAddApplicant";
-export { default as AdminApplications } from "./Admin/AdminApplications";
+// Note: Using AdminApplicants (admissions applications list)
+export { default as AdminApplicantDetails } from "./Admin/AdminApplicantDetails";

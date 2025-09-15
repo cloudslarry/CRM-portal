@@ -48,6 +48,7 @@ import api from '../config/api';
 import authToken from '../redux/utils/authToken';
 import { jwtDecode } from 'jwt-decode';
 import { setStudentUser } from '../redux/actions/studentAction';
+import { getAvatarUrl, isValidAvatarUrl } from '../utils/avatarUtils';
 import { setAdminUser } from '../redux/actions/adminAction';
 
 const Chat = () => {
@@ -1059,7 +1060,16 @@ const Chat = () => {
       setSentMessages(new Set());
       
       console.log('Loading chat history for receiver:', receiverId);
-      const response = await api.get(`/api/chat/${effectiveUserId}/${receiverId}`);
+      // Get enrollment IDs from the students
+      const currentUserEnrollmentId = currentUser?.enrollmentId;
+      const selectedStudentEnrollmentId = selectedStudent?.enrollmentId;
+      
+      if (!currentUserEnrollmentId || !selectedStudentEnrollmentId) {
+        console.error('Enrollment IDs not found');
+        return;
+      }
+      
+      const response = await api.get(`/api/chat/${currentUserEnrollmentId}/${selectedStudentEnrollmentId}`);
 
       if (response.data.success) {
         // Convert API messages to the format expected by the UI
@@ -1288,16 +1298,28 @@ const Chat = () => {
           }
         }
         
-        // Prepare message data with proper fallbacks - FIXED: Better validation for file uploads
+        // Get enrollment IDs
+        const currentUserEnrollmentId = currentUser?.enrollmentId;
+        const selectedStudentEnrollmentId = selectedStudent?.enrollmentId;
+        
+        if (!currentUserEnrollmentId || !selectedStudentEnrollmentId) {
+          console.error('Enrollment IDs not found for messaging');
+          toast.error('User enrollment information not available. Please refresh and try again.');
+          return;
+        }
+
+        // Prepare message data with enrollment IDs as primary identifiers
         const messagePayload = {
           senderId: String(effectiveUserId),
           receiverId: String(selectedStudent._id),
+          senderEnrollmentId: String(currentUserEnrollmentId),
+          receiverEnrollmentId: String(selectedStudentEnrollmentId),
           message: String(messageData.text || ''),
           senderName: String(currentUserName),
           receiverName: String(selectedStudent.name || 'Unknown Receiver'),
           senderRegistrationNumber: String(currentUserRegNumber),
           receiverRegistrationNumber: String(selectedStudent.registrationNumber || 'Unknown'),
-          roomId: String(room1 || `${effectiveUserId}_${selectedStudent._id}`),
+          roomId: String(room1 || `${currentUserEnrollmentId}_${selectedStudentEnrollmentId}`),
           replyTo: messageData.replyTo?._id ? String(messageData.replyTo._id) : null,
           replyMessage: messageData.replyTo?.message || messageData.replyTo?.text || null,
           replySender: messageData.replyTo?.sender === 'me' ? String(currentUserName) : String(selectedStudent.name || 'Unknown Receiver'),
@@ -1339,6 +1361,8 @@ const Chat = () => {
           // Add all message payload fields explicitly with proper validation
           formData.append('senderId', String(messagePayload.senderId));
           formData.append('receiverId', String(messagePayload.receiverId));
+          formData.append('senderEnrollmentId', String(messagePayload.senderEnrollmentId));
+          formData.append('receiverEnrollmentId', String(messagePayload.receiverEnrollmentId));
           formData.append('message', String(messagePayload.message || ''));
           formData.append('senderName', String(messagePayload.senderName));
           formData.append('receiverName', String(messagePayload.receiverName));
@@ -1985,15 +2009,18 @@ const Chat = () => {
                             height: 48,
                           }}
                         >
-                          {studentItem.avatar ? (
+                          {getAvatarUrl(studentItem.avatar) && isValidAvatarUrl(getAvatarUrl(studentItem.avatar)) ? (
                             <img 
-                              src={studentItem.avatar} 
+                              src={getAvatarUrl(studentItem.avatar)} 
                               alt={studentItem.name}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
                             />
-                          ) : (
-                            <PersonIcon />
-                          )}
+                          ) : null}
+                          <PersonIcon style={{ display: getAvatarUrl(studentItem.avatar) ? 'none' : 'flex' }} />
                         </Avatar>
                       </Badge>
                     </ListItemAvatar>

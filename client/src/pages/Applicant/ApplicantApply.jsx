@@ -82,12 +82,14 @@ const ApplicantApply = () => {
 
   return (
     <ApplicantLayout title="Apply for Admission">
-      <Container maxWidth="md" sx={{ py: 6 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="h5" gutterBottom>Admission Application Form</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-              Fill out the form below to apply for admission. All fields marked with * are required.
+      <Container maxWidth="md" sx={{ py: { xs: 2, sm: 3 } }}>
+        <Card variant="outlined">
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="h6" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
+              Admission Application
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
+              Fill out the form below. Fields marked with * are required.
             </Typography>
 
             {error && (
@@ -103,7 +105,7 @@ const ApplicantApply = () => {
             )}
 
             <Box component="form" onSubmit={handleSubmit}>
-              <Typography variant="h6" gutterBottom sx={{ mt: 3, mb: 2 }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
                 Personal Information
               </Typography>
               
@@ -114,6 +116,7 @@ const ApplicantApply = () => {
                     label="Full Name *" 
                     value={form.name} 
                     onChange={(e) => handleChange('name', e.target.value)}
+                    size="small"
                     required
                   />
                 </Grid>
@@ -124,6 +127,7 @@ const ApplicantApply = () => {
                     type="email"
                     value={form.email} 
                     onChange={(e) => handleChange('email', e.target.value)}
+                    size="small"
                     required
                   />
                 </Grid>
@@ -133,6 +137,7 @@ const ApplicantApply = () => {
                     label="Contact Number *" 
                     value={form.contactNumber} 
                     onChange={(e) => handleChange('contactNumber', e.target.value)}
+                    size="small"
                     required
                   />
                 </Grid>
@@ -144,11 +149,12 @@ const ApplicantApply = () => {
                     value={form.dateOfBirth} 
                     onChange={(e) => handleChange('dateOfBirth', e.target.value)}
                     InputLabelProps={{ shrink: true }}
+                    size="small"
                     required
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required size="small">
                     <InputLabel>Gender *</InputLabel>
                     <Select
                       value={form.gender}
@@ -162,7 +168,7 @@ const ApplicantApply = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required size="small">
                     <InputLabel>Category *</InputLabel>
                     <Select
                       value={form.category}
@@ -183,6 +189,7 @@ const ApplicantApply = () => {
                     label="Father's Name *" 
                     value={form.fatherName} 
                     onChange={(e) => handleChange('fatherName', e.target.value)}
+                    size="small"
                     required
                   />
                 </Grid>
@@ -192,6 +199,7 @@ const ApplicantApply = () => {
                     label="Mother's Name *" 
                     value={form.motherName} 
                     onChange={(e) => handleChange('motherName', e.target.value)}
+                    size="small"
                     required
                   />
                 </Grid>
@@ -203,18 +211,19 @@ const ApplicantApply = () => {
                     rows={3}
                     value={form.address} 
                     onChange={(e) => handleChange('address', e.target.value)}
+                    size="small"
                     required
                   />
                 </Grid>
               </Grid>
 
-              <Typography variant="h6" gutterBottom sx={{ mt: 4, mb: 2 }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 3, mb: 1, fontWeight: 600 }}>
                 Academic Information
               </Typography>
               
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required size="small">
                     <InputLabel>Department *</InputLabel>
                     <Select
                       value={form.department}
@@ -231,7 +240,7 @@ const ApplicantApply = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required size="small">
                     <InputLabel>Year *</InputLabel>
                     <Select
                       value={form.year}
@@ -246,7 +255,7 @@ const ApplicantApply = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required size="small">
                     <InputLabel>Section *</InputLabel>
                     <Select
                       value={form.section}
@@ -266,6 +275,7 @@ const ApplicantApply = () => {
                     value={form.previousQualification} 
                     onChange={(e) => handleChange('previousQualification', e.target.value)}
                     placeholder="e.g., 12th Standard, Diploma"
+                    size="small"
                     required
                   />
                 </Grid>
@@ -276,6 +286,7 @@ const ApplicantApply = () => {
                     value={form.previousMarks} 
                     onChange={(e) => handleChange('previousMarks', e.target.value)}
                     placeholder="e.g., 85% or 8.5 CGPA"
+                    size="small"
                     required
                   />
                 </Grid>
@@ -285,12 +296,13 @@ const ApplicantApply = () => {
                     label="Previous School/College *" 
                     value={form.previousSchool} 
                     onChange={(e) => handleChange('previousSchool', e.target.value)}
+                    size="small"
                     required
                   />
                 </Grid>
               </Grid>
 
-              <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
+              <Stack direction="row" spacing={2} sx={{ mt: 3, justifyContent: 'flex-end' }}>
                 <Button 
                   type="submit" 
                   variant="contained" 

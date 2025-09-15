@@ -81,58 +81,22 @@ const AdminSidebar = ({ open, onClose, isMobile, width = 280 }) => {
       label: 'Applicants',
       icon: <GroupIcon />,
       color: 'primary',
-      children: [
-        {
-          label: 'View Applicants',
-          icon: <GroupIcon />,
-          path: '/admin/applicants',
-          color: 'primary'
-        },
-        {
-          label: 'Applications',
-          icon: <LibraryBooksIcon />,
-          path: '/admin/applications',
-          color: 'primary'
-        }
-      ]
+      path: '/admin/applications',
+          
     },
     {
       label: 'Students',
       icon: <PersonIcon />,
       color: 'info',
-      children: [
-        {
-          label: 'Add Student',
-          icon: <PersonAddIcon />,
-          path: '/admin/add/students',
-          color: 'info'
-        },
-        {
-          label: 'View Students',
-          icon: <PersonIcon />,
-          path: '/admin/students',
-          color: 'info'
-        }
-      ]
+      path: '/admin/students',
+         
     },
     {
       label: 'Faculty',
       icon: <GroupIcon />,
       color: 'warning',
-      children: [
-        {
-          label: 'Add Faculty',
-          icon: <HowToRegIcon />,
-          path: '/admin/add/faculties',
-          color: 'warning'
-        },
-        {
-          label: 'View Faculty',
-          icon: <GroupIcon />,
-          path: '/admin/faculties',
-          color: 'warning'
-        }
-      ]
+      path: '/admin/faculties',
+          
     },
     {
       label: 'Subjects',
@@ -193,6 +157,12 @@ const AdminSidebar = ({ open, onClose, isMobile, width = 280 }) => {
           label: 'Room Management',
           icon: <RoomIcon />,
           path: '/admin/hostels/rooms',
+          color: 'info'
+        },
+        {
+          label: 'Assign Hostel',
+          icon: <HowToRegIcon />,
+          path: '/admin/assign-hostel',
           color: 'info'
         },
         {

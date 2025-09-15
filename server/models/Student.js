@@ -37,6 +37,12 @@ const studentSchema = new Schema(
       type: Number,
       required: true,
     },
+    semester: {
+      type: String,
+      required: true,
+      enum: ['1', '2', '3', '4', '5', '6', '7', '8'],
+      default: '1'
+    },
     subjects: [
       {
         type: Schema.Types.ObjectId,
@@ -51,6 +57,13 @@ const studentSchema = new Schema(
       required: true, // IMPROVEMENT: Should be required
       unique: true, // IMPROVEMENT: Should be unique
       trim: true,
+    },
+    enrollmentId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true, // Add index for faster lookups
     },
     department: {
       type: String,
@@ -68,6 +81,13 @@ const studentSchema = new Schema(
     },
     fatherMobileNumber: {
       type: String, // FIX: Changed from Number to String
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    dateOfBirth: {
+      type: Date,
     },
     // REMOVED: Duplicate fatherName field was here
     otp: {
@@ -92,8 +112,38 @@ const studentSchema = new Schema(
   }
 );
 
-// SECURITY: Mongoose pre-save hook to hash password before saving
+// Function to generate unique enrollment ID
+const generateEnrollmentId = async () => {
+  let enrollmentId;
+  let isUnique = false;
+  
+  while (!isUnique) {
+    // Generate enrollment ID in format: ENR + 6 random digits
+    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    enrollmentId = `ENR${randomNum}`;
+    
+    // Check if this enrollment ID already exists
+    const existingStudent = await mongoose.model('Student').findOne({ enrollmentId });
+    if (!existingStudent) {
+      isUnique = true;
+    }
+  }
+  
+  return enrollmentId;
+};
+
+// Pre-save hook to generate enrollment ID if not provided
 studentSchema.pre("save", async function (next) {
+  // Generate enrollment ID if not provided
+  if (!this.enrollmentId) {
+    try {
+      this.enrollmentId = await generateEnrollmentId();
+    } catch (error) {
+      return next(error);
+    }
+  }
+  
+  // Hash password if modified
   if (!this.isModified("password")) {
     return next();
   }

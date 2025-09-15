@@ -9,6 +9,8 @@ const validateStudentRegisterInput = (data) => {
   data.section = !isEmpty(data.section) ? data.section : "";
   data.gender = !isEmpty(data.gender) ? data.gender : "";
   data.year = !isEmpty(data.year) ? data.year : "";
+  data.address = !isEmpty(data.address) ? data.address : "";
+  data.dateOfBirth = !isEmpty(data.dateOfBirth) ? data.dateOfBirth : "";
 
   if (!Validator.isLength(data.name, { min: 2, max: 30 })) {
     errors.name = "Name must be between 2 and 30 characters";
@@ -42,6 +44,14 @@ const validateStudentRegisterInput = (data) => {
     errors.gender = "Gender field is required";
   } else if (!['Male','Female'].includes(data.gender)) {
     errors.gender = "Gender must be Male or Female";
+  }
+
+  if (Validator.isEmpty(data.address)) {
+    errors.address = "Address field is required";
+  }
+
+  if (Validator.isEmpty(data.dateOfBirth)) {
+    errors.dateOfBirth = "Date of birth field is required";
   }
 
   return {

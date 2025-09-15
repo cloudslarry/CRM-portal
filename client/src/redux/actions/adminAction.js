@@ -369,6 +369,48 @@ export const adminAddApplicant = (applicantData) => {
   };
 };
 
+// Applicant status updates
+export const adminUpdateApplicantStatus = (applicantId, status, note) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.put(`/api/admin/applicant/${applicantId}/status`, { status, note });
+      // Optimistically refresh list
+      await dispatch(adminListApplicants());
+      return { success: true, data: data.result };
+    } catch (err) {
+      return { success: false, error: err.response?.data || { message: 'Failed to update status' } };
+    }
+  };
+};
+
+export const adminApproveApplicant = (applicantId, note) => adminUpdateApplicantStatus(applicantId, 'approved', note);
+export const adminRejectApplicant = (applicantId, note) => adminUpdateApplicantStatus(applicantId, 'rejected', note);
+export const adminPendingApplicant = (applicantId, note) => adminUpdateApplicantStatus(applicantId, 'pending', note);
+
+export const adminGetApplicantById = (id) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get(`/api/admin/applicant/${id}`);
+      return { success: true, data: data.result };
+    } catch (err) {
+      return { success: false, error: err.response?.data || { message: 'Failed to fetch applicant' } };
+    }
+  };
+};
+
+// Optionally refresh seen state for a single id without navigating
+export const adminMarkApplicantSeen = (id) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get(`/api/admin/applicant/${id}`);
+      await dispatch(adminListApplicants());
+      return { success: true, data: data.result };
+    } catch (err) {
+      return { success: false };
+    }
+  };
+};
+
 // Applications management
 export const adminFetchApplications = (status) => {
   return async (dispatch) => {
@@ -485,4 +527,26 @@ export const adminLogout = () => (dispatch) => {
   authToken(false);
   // Set current user to {} which will set isAuthenticated to false
   dispatch(setAdmin({}));
+};
+
+// Assign student to hostel
+export const assignStudentToHostel = (studentId, roomId) => async (dispatch) => {
+  try {
+    const { data } = await api.post('/api/admin/assign-student-to-hostel', {
+      studentId,
+      roomId
+    });
+    
+    if (data.success) {
+      return { success: true, data: data.result };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (err) {
+    console.error('Error assigning student to hostel:', err);
+    return { 
+      success: false, 
+      error: err.response?.data?.message || 'Failed to assign student to hostel' 
+    };
+  }
 };

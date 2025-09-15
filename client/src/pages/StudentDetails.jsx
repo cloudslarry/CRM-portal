@@ -102,7 +102,13 @@ const StudentDetails = () => {
     <Container>
       <Header>
           <h1>Student Profile</h1>
-          <img src={student.regNumStudent?.avatar?.url} />
+          <img 
+            src={student.regNumStudent?.avatar?.url || student.regNumStudent?.avatar} 
+            alt={student.regNumStudent?.name}
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
           <h3>{student.regNumStudent?.name}</h3>
           <h3>{registrationNumber}</h3>
           <Link to={`/chat/${student.student?.student?.registrationNumber}.${registrationNumber}`}>Message</Link>

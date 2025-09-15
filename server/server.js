@@ -63,10 +63,21 @@ io.on("connection", (socket) => {
         files = []
       } = messageData;
 
-      // Save message to database
+      // Get enrollment IDs from database
+      const senderStudent = await Student.findOne({ registrationNumber: senderRegistrationNumber }).select('enrollmentId');
+      const receiverStudent = await Student.findOne({ registrationNumber: receiverRegistrationNumber }).select('enrollmentId');
+      
+      if (!senderStudent || !receiverStudent) {
+        socket.emit('error', { message: 'Sender or receiver not found' });
+        return;
+      }
+
+      // Save message to database using enrollment IDs
       const newMessage = new Message({
         senderId,
         receiverId,
+        senderEnrollmentId: senderStudent.enrollmentId,
+        receiverEnrollmentId: receiverStudent.enrollmentId,
         message,
         senderName,
         receiverName,

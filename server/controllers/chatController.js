@@ -26,6 +26,20 @@ const sendMessage = async (req, res) => {
       replySenderId
     } = req.body;
 
+    // Get enrollment IDs from database using registration numbers
+    const senderStudent = await Student.findOne({ registrationNumber: senderRegistrationNumber }).select('enrollmentId');
+    const receiverStudent = await Student.findOne({ registrationNumber: receiverRegistrationNumber }).select('enrollmentId');
+    
+    if (!senderStudent || !receiverStudent) {
+      return res.status(400).json({
+        success: false,
+        message: 'Sender or receiver not found'
+      });
+    }
+    
+    const senderEnrollmentId = senderStudent.enrollmentId;
+    const receiverEnrollmentId = receiverStudent.enrollmentId;
+
     console.log('Extracted fields:', {
       senderId,
       receiverId,
@@ -34,22 +48,24 @@ const sendMessage = async (req, res) => {
       receiverName,
       senderRegistrationNumber,
       receiverRegistrationNumber,
+      senderEnrollmentId,
+      receiverEnrollmentId,
       roomId
     });
 
     // Validate required fields - IMPROVED: Better validation for file uploads
-    if (!senderId || !receiverId) {
+    if (!senderEnrollmentId || !receiverEnrollmentId) {
       console.error('Missing required fields:', { 
-        senderId, 
-        receiverId, 
-        senderIdType: typeof senderId,
-        receiverIdType: typeof receiverId,
+        senderEnrollmentId, 
+        receiverEnrollmentId, 
+        senderEnrollmentIdType: typeof senderEnrollmentId,
+        receiverEnrollmentIdType: typeof receiverEnrollmentId,
         bodyKeys: Object.keys(req.body),
         filesCount: req.files ? req.files.length : 0
       });
       return res.status(400).json({
         success: false,
-        message: 'Sender ID and Receiver ID are required'
+        message: 'Sender and Receiver enrollment IDs are required'
       });
     }
 
@@ -96,6 +112,8 @@ const sendMessage = async (req, res) => {
     const messageData = {
       senderId,
       receiverId,
+      senderEnrollmentId,
+      receiverEnrollmentId,
       message: message || '',
       senderName,
       receiverName,
@@ -159,46 +177,25 @@ const sendMessage = async (req, res) => {
 // Get chat history between two users
 const getChatHistory = async (req, res) => {
   try {
-    const { userId, receiverId } = req.params;
+    const { senderEnrollmentId, receiverEnrollmentId } = req.params;
     const { page = 1, limit = 50 } = req.query;
 
     // Validate parameters
-    if (!userId || !receiverId) {
+    if (!senderEnrollmentId || !receiverEnrollmentId) {
       return res.status(400).json({
         success: false,
-        message: 'User ID and Receiver ID are required'
+        message: 'Sender and Receiver enrollment IDs are required'
       });
     }
-
-    // Convert userIds to ObjectIds with validation
-    const mongoose = require('mongoose');
-    
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid user ID format'
-      });
-    }
-    
-    if (!mongoose.Types.ObjectId.isValid(receiverId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid receiver ID format'
-      });
-    }
-    
-    const userObjectId = new mongoose.Types.ObjectId(userId);
-    const receiverObjectId = new mongoose.Types.ObjectId(receiverId);
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Get messages between the two users (excluding deleted messages)
+    // Get messages between the two users using enrollment IDs (excluding deleted messages)
     const messages = await Message.find({
       $or: [
-        { senderId: userObjectId, receiverId: receiverObjectId },
-        { senderId: receiverObjectId, receiverId: userObjectId }
+        { senderEnrollmentId: senderEnrollmentId, receiverEnrollmentId: receiverEnrollmentId },
+        { senderEnrollmentId: receiverEnrollmentId, receiverEnrollmentId: senderEnrollmentId }
       ],
       isDeleted: { $ne: true }
     })
@@ -211,15 +208,15 @@ const getChatHistory = async (req, res) => {
     // Get total count for pagination
     const totalMessages = await Message.countDocuments({
       $or: [
-        { senderId: userObjectId, receiverId: receiverObjectId },
-        { senderId: receiverObjectId, receiverId: userObjectId }
+        { senderEnrollmentId: senderEnrollmentId, receiverEnrollmentId: receiverEnrollmentId },
+        { senderEnrollmentId: receiverEnrollmentId, receiverEnrollmentId: senderEnrollmentId }
       ]
     });
 
-    // Get user details
+    // Get user details using enrollment IDs
     const [sender, receiver] = await Promise.all([
-      Student.findById(userObjectId).select('name registrationNumber department'),
-      Student.findById(receiverObjectId).select('name registrationNumber department')
+      Student.findOne({ enrollmentId: senderEnrollmentId }).select('name registrationNumber department enrollmentId'),
+      Student.findOne({ enrollmentId: receiverEnrollmentId }).select('name registrationNumber department enrollmentId')
     ]);
 
     res.status(200).json({

@@ -13,6 +13,16 @@ const messageSchema = new Schema({
     type: String,
     required: true,
   },
+  senderEnrollmentId: {
+    type: String,
+    required: true,
+    index: true, // Add index for faster lookups
+  },
+  receiverEnrollmentId: {
+    type: String,
+    required: true,
+    index: true, // Add index for faster lookups
+  },
   fileUrl: {
     type: String,
     default: null,

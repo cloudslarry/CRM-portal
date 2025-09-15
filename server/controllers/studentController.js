@@ -352,15 +352,69 @@ exports.getPrivateChat = async (req, res, next) => {
 
 exports.getAllSubjects = async (req, res, next) => {
   try {
-    const { department, year } = req.user;
-    const subjects = await Subject.find({ department, year });
+    console.log('getAllSubjects: req.user:', req.user);
+    
+    // Get student ID from the authenticated user
+    const studentId = req.user.id;
+    
+    // Find the student to get their department and year
+    const student = await Student.findById(studentId).select('department year semester');
+    
+    if (!student) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Student not found" 
+      });
+    }
+    
+    console.log('getAllSubjects: Student data:', {
+      department: student.department,
+      year: student.year,
+      semester: student.semester
+    });
+    
+    // Find subjects for the student's department, year, and semester
+    // Handle different year formats (e.g., "1st Year", "1", "First Year")
+    const yearVariations = [
+      student.year.toString(),
+      `${student.year}st Year`,
+      `${student.year}nd Year`,
+      `${student.year}rd Year`,
+      `${student.year}th Year`,
+      `Year ${student.year}`,
+      `First Year`,
+      `Second Year`,
+      `Third Year`,
+      `Fourth Year`
+    ];
+    
+    const subjects = await Subject.find({ 
+      department: student.department, 
+      year: { $in: yearVariations }, // Match any of the year variations
+      semester: student.semester
+    });
+
+    console.log('getAllSubjects: Found subjects:', subjects.length);
 
     if (subjects.length === 0) {
-      return res.status(404).json({ message: "No subjects found" });
+      return res.status(200).json({ 
+        success: true,
+        result: [],
+        message: "No subjects found for your department and year" 
+      });
     }
-    res.status(200).json({ result: subjects });
+    
+    res.status(200).json({ 
+      success: true,
+      result: subjects 
+    });
   } catch (err) {
-    return res.status(400).json({ "Error in fetching subjects": err.message });
+    console.error('getAllSubjects error:', err);
+    return res.status(500).json({ 
+      success: false,
+      message: "Error in fetching subjects",
+      error: err.message 
+    });
   }
 };
 

@@ -221,6 +221,8 @@ exports.addStudent = async (req, res, next) => {
       studentMobileNumber,
       fatherMobileNumber,
       gender,
+      address,
+      dateOfBirth,
     } = req.body;
 
     // Convert year string to number if needed
@@ -241,18 +243,24 @@ exports.addStudent = async (req, res, next) => {
 
     const avatarUrl = gravatar.url(email, { s: "200", r: "pg", d: "mm" });
     let departmentHelper;
-    if (department === "C.S.E" || department === "Computer Science") {
+    if (department === "C.S.E" || department === "Computer Science" || department === "Computer Science Engineering") {
       departmentHelper = "01";
-    } else if (department === "E.C.E" || department === "Electronics & Communication") {
+    } else if (department === "E.C.E" || department === "Electronics & Communication" || department === "Electronics and Communication Engineering") {
       departmentHelper = "02";
-    } else if (department === "I.T" || department === "Information Technology") {
+    } else if (department === "I.T" || department === "Information Technology" || department === "Information Technology Engineering") {
       departmentHelper = "03";
     } else if (department === "Mechanical" || department === "Mechanical Engineering") {
       departmentHelper = "04";
     } else if (department === "Civil" || department === "Civil Engineering") {
       departmentHelper = "05";
-    } else if (department === "E.E.E" || department === "Electrical Engineering") {
+    } else if (department === "E.E.E" || department === "Electrical Engineering" || department === "Electrical and Electronics Engineering") {
       departmentHelper = "06";
+    } else if (department === "Chemical" || department === "Chemical Engineering") {
+      departmentHelper = "07";
+    } else if (department === "Aerospace" || department === "Aerospace Engineering") {
+      departmentHelper = "08";
+    } else if (department === "Biotechnology" || department === "Biotechnology Engineering") {
+      departmentHelper = "09";
     } else {
       departmentHelper = "00";
     }
@@ -277,6 +285,9 @@ exports.addStudent = async (req, res, next) => {
     var components = ["STU", batch, departmentHelper, helper];
 
     var registrationNumber = components.join("");
+    
+    // Generate enrollment ID
+    const enrollmentId = "ENR" + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
     const newStudent = await new Student({
       name,
       email,
@@ -288,8 +299,11 @@ exports.addStudent = async (req, res, next) => {
       section,
       batch,
       gender,
+      address: address || '',
+      dateOfBirth: dateOfBirth || null,
+      enrollmentId: enrollmentId,
       avatar: {
-        public_id: "123",
+        public_id: '123',
         url: avatarUrl,
       },
       studentMobileNumber,
@@ -298,7 +312,27 @@ exports.addStudent = async (req, res, next) => {
 
     await newStudent.save();
 
-    const subjects = await Subject.find({ year: yearNumber });
+    // Find subjects for the student's department, year, and semester
+    // Handle different year formats (e.g., '1st Year', '1', 'First Year')
+    const yearVariations = [
+      yearNumber.toString(),
+      `${yearNumber}st Year`,
+      `${yearNumber}nd Year`,
+      `${yearNumber}rd Year`,
+      `${yearNumber}th Year`,
+      `Year ${yearNumber}`,
+      `First Year`,
+      `Second Year`,
+      `Third Year`,
+      `Fourth Year`
+    ];
+    
+    const subjects = await Subject.find({ 
+      department: department, 
+      year: { $in: yearVariations },
+      semester: 1 // Default to semester 1, can be made dynamic later
+    });
+    
     if (subjects.length !== 0) {
       for (var i = 0; i < subjects.length; i++) {
         newStudent.subjects.push(subjects[i]._id);
@@ -902,6 +936,8 @@ exports.addStudentDirect = async (req, res, next) => {
       studentMobileNumber,
       fatherMobileNumber,
       gender,
+      address,
+      dateOfBirth,
     } = req.body;
 
     // Convert year string to number if needed
@@ -924,18 +960,24 @@ exports.addStudentDirect = async (req, res, next) => {
 
     const avatarUrl = gravatar.url(email, { s: "200", r: "pg", d: "mm" });
     let departmentHelper;
-    if (department === "C.S.E" || department === "Computer Science") {
+    if (department === "C.S.E" || department === "Computer Science" || department === "Computer Science Engineering") {
       departmentHelper = "01";
-    } else if (department === "E.C.E" || department === "Electronics & Communication") {
+    } else if (department === "E.C.E" || department === "Electronics & Communication" || department === "Electronics and Communication Engineering") {
       departmentHelper = "02";
-    } else if (department === "I.T" || department === "Information Technology") {
+    } else if (department === "I.T" || department === "Information Technology" || department === "Information Technology Engineering") {
       departmentHelper = "03";
     } else if (department === "Mechanical" || department === "Mechanical Engineering") {
       departmentHelper = "04";
     } else if (department === "Civil" || department === "Civil Engineering") {
       departmentHelper = "05";
-    } else if (department === "E.E.E" || department === "Electrical Engineering") {
+    } else if (department === "E.E.E" || department === "Electrical Engineering" || department === "Electrical and Electronics Engineering") {
       departmentHelper = "06";
+    } else if (department === "Chemical" || department === "Chemical Engineering") {
+      departmentHelper = "07";
+    } else if (department === "Aerospace" || department === "Aerospace Engineering") {
+      departmentHelper = "08";
+    } else if (department === "Biotechnology" || department === "Biotechnology Engineering") {
+      departmentHelper = "09";
     } else {
       departmentHelper = "00";
     }
@@ -960,6 +1002,9 @@ exports.addStudentDirect = async (req, res, next) => {
     var components = ["STU", batch, departmentHelper, helper];
 
     var registrationNumber = components.join("");
+    
+    // Generate enrollment ID
+    const enrollmentId = "ENR" + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
     const newStudent = await new Student({
       name,
       email,
@@ -971,8 +1016,11 @@ exports.addStudentDirect = async (req, res, next) => {
       section,
       batch,
       gender,
+      address: address || '',
+      dateOfBirth: dateOfBirth || null,
+      enrollmentId: enrollmentId,
       avatar: {
-        public_id: "123",
+        public_id: '123',
         url: avatarUrl,
       },
       studentMobileNumber,
@@ -981,7 +1029,27 @@ exports.addStudentDirect = async (req, res, next) => {
 
     await newStudent.save();
 
-    const subjects = await Subject.find({ year: yearNumber });
+    // Find subjects for the student's department, year, and semester
+    // Handle different year formats (e.g., '1st Year', '1', 'First Year')
+    const yearVariations = [
+      yearNumber.toString(),
+      `${yearNumber}st Year`,
+      `${yearNumber}nd Year`,
+      `${yearNumber}rd Year`,
+      `${yearNumber}th Year`,
+      `Year ${yearNumber}`,
+      `First Year`,
+      `Second Year`,
+      `Third Year`,
+      `Fourth Year`
+    ];
+    
+    const subjects = await Subject.find({ 
+      department: department, 
+      year: { $in: yearVariations },
+      semester: 1 // Default to semester 1, can be made dynamic later
+    });
+    
     if (subjects.length !== 0) {
       for (var i = 0; i < subjects.length; i++) {
         newStudent.subjects.push(subjects[i]._id);
@@ -1462,6 +1530,26 @@ exports.getAllApplicants = async (req, res, next) => {
       message: "Error fetching applicants",
       error: err.message
     });
+  }
+};
+
+// Get single applicant by id and mark seen
+exports.getApplicantById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const applicant = await Applicant.findById(id);
+    if (!applicant) {
+      return res.status(404).json({ success: false, message: "Applicant not found" });
+    }
+    // Mark as seen if not already
+    if (!applicant.seen) {
+      applicant.seen = true;
+      await applicant.save();
+    }
+    return res.status(200).json({ success: true, result: applicant });
+  } catch (err) {
+    console.log("Error in getting applicant by id:", err.message);
+    return res.status(500).json({ success: false, message: "Error fetching applicant", error: err.message });
   }
 };
 

@@ -42,8 +42,8 @@ router.get('/conversations/:userId', chatController.getUserConversations);
 // Search messages (must come before /:userId/:receiverId)
 router.get('/search/:userId', chatController.searchMessages);
 
-// Get chat history between two users
-router.get('/:userId/:receiverId', chatController.getChatHistory);
+// Get chat history between two users using enrollment IDs
+router.get('/:senderEnrollmentId/:receiverEnrollmentId', chatController.getChatHistory);
 
 // Mark messages as read
 router.put('/mark-read', chatController.markAsRead);

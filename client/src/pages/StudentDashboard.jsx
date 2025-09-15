@@ -17,7 +17,13 @@ const StudentDashboard = () => {
     <StudentLayout title="Student Dashboard">
       <Container maxWidth="lg">
         <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Avatar src={s.avatar?.url} sx={{ width: 96, height: 96, mx: 'auto', mb: 1 }} />
+          <Avatar 
+            src={s.avatar?.url || s.avatar} 
+            sx={{ width: 96, height: 96, mx: 'auto', mb: 1 }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
           <Typography variant="h5" fontWeight={700}>{s.name}</Typography>
           <Typography variant="body2" color="text.secondary">{s.registrationNumber}</Typography>
         </Box>

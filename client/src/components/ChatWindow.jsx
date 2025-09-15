@@ -38,6 +38,7 @@ import {
   CheckCircle as CheckCircleIcon,
   DoubleArrow as DoubleArrowIcon
 } from '@mui/icons-material';
+import { getAvatarUrl, isValidAvatarUrl } from '../utils/avatarUtils';
 
 const ChatWindow = ({ 
   selectedStudent, 
@@ -354,15 +355,18 @@ const ChatWindow = ({
           width: 40,
           height: 40
         }}>
-          {selectedStudent.avatar ? (
+          {getAvatarUrl(selectedStudent.avatar) && isValidAvatarUrl(getAvatarUrl(selectedStudent.avatar)) ? (
             <img 
-              src={selectedStudent.avatar} 
+              src={getAvatarUrl(selectedStudent.avatar)} 
               alt={selectedStudent.name}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
             />
-          ) : (
-            <PersonIcon />
-          )}
+          ) : null}
+          <PersonIcon style={{ display: getAvatarUrl(selectedStudent.avatar) ? 'none' : 'flex' }} />
         </Avatar>
         
         <Box sx={{ flex: 1 }}>

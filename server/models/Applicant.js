@@ -74,6 +74,11 @@ const applicantSchema = new Schema({
     type: String,
     unique: true,
   },
+  seen: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
   avatar: {
     public_id: {
       type: String,

@@ -135,10 +135,24 @@ class ChatServer {
     }
 
     try {
-      // Save message to database
+      // Get enrollment IDs from database
+      const senderStudent = await Student.findOne({ registrationNumber: ws.user.registrationNumber }).select('enrollmentId');
+      const receiverStudent = await Student.findOne({ registrationNumber: receiverRegistrationNumber }).select('enrollmentId');
+      
+      if (!senderStudent || !receiverStudent) {
+        this.sendToClient(ws, {
+          type: 'error',
+          message: 'Sender or receiver not found'
+        });
+        return;
+      }
+
+      // Save message to database using enrollment IDs
       const newMessage = new Message({
         senderName: ws.user.name,
         senderId: ws.user.id,
+        senderEnrollmentId: senderStudent.enrollmentId,
+        receiverEnrollmentId: receiverStudent.enrollmentId,
         roomId,
         message,
         senderRegistrationNumber: ws.user.registrationNumber,

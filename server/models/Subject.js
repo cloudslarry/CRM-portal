@@ -23,6 +23,12 @@ const subjectSchema = new Schema({
     type: String,
     required: true,
   },
+  semester: {
+    type: String,
+    required: true,
+    enum: ['1', '2', '3', '4', '5', '6', '7', '8'],
+    default: '1'
+  },
   attendance: {
     type: Schema.Types.ObjectId,
     ref: "Attendance",

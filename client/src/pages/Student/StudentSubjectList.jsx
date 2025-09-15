@@ -1,11 +1,11 @@
-import React,{useEffect} from 'react'
+import React,{useEffect, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {DataGrid} from '@mui/x-data-grid'
 import {useSelector,useDispatch} from 'react-redux'
 
 import StudentNavbar from '../../components/StudentNavbar'
 import StudentLayout from '../../components/StudentLayout'
-import { Box, Container, Card, CardContent, Typography } from '@mui/material'
+import { Box, Container, Card, CardContent, Typography, CircularProgress, Alert, Chip } from '@mui/material'
 import styled from 'styled-components'
 import {getAllSubjects} from '../../redux/actions/studentAction'
 
@@ -30,6 +30,8 @@ text-align: center;
 `
 
 const StudentSubjectList = () => {
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
 
     const student = useSelector((store) => store.student)
     const navigate = useNavigate()
@@ -37,14 +39,27 @@ const StudentSubjectList = () => {
 
     useEffect(() => {
        console.log('StudentSubjectList: Fetching subjects...');
+       setLoading(true)
+       setError(null)
        dispatch(getAllSubjects())
     },[dispatch])
+
+    useEffect(() => {
+        if (student.allSubjects !== undefined) {
+            setLoading(false)
+        }
+        if (student.error) {
+            setError(student.error)
+            setLoading(false)
+        }
+    }, [student.allSubjects, student.error])
 
     const columns = [
         {field:"id",headerName:"Subject No.",flex:0.3},
         {field:"code",headerName:"Subject Code",flex:1},
-        {field:"name",headerName:"Subject Name",flex:1},
+        {field:"name",headerName:"Subject Name",flex:1.5},
         {field:"year",headerName:"Year",flex:0.3},
+        {field:"semester",headerName:"Semester",flex:0.3},
         {field:"total",headerName:"Total Hours",flex:0.4}
     ]
 
@@ -65,6 +80,7 @@ const StudentSubjectList = () => {
             code:item.subjectCode,
             name:item.subjectName,
             year:item.year,
+            semester:item.semester,
             total:item.totalLectures
         })
     })
@@ -78,10 +94,66 @@ const StudentSubjectList = () => {
       <StudentLayout title="Subjects">
         <Container maxWidth="lg">
           <Card>
-            <CardContent sx={{ p: 0 }}>
-              <Box sx={{ height: 560, width: '100%' }}>
-                <DataGrid rows={rows} columns={columns} pageSize={10} rowsPerPageOptions={[5,10,25]} disableSelectionOnClick sx={{ border: 0 }} />
+            <CardContent>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="h6" fontWeight={600}>
+                  Your Subjects
+                </Typography>
+                {student.student?.student && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Chip 
+                      label={`Department: ${student.student.student.department}`} 
+                      color="primary" 
+                      variant="outlined" 
+                      size="small"
+                    />
+                    <Chip 
+                      label={`Year: ${student.student.student.year}`} 
+                      color="secondary" 
+                      variant="outlined" 
+                      size="small"
+                    />
+                    <Chip 
+                      label={`Semester: ${student.student.student.semester || '1'}`} 
+                      color="success" 
+                      variant="outlined" 
+                      size="small"
+                    />
+                  </Box>
+                )}
               </Box>
+              
+              {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error.message || 'Failed to load subjects'}
+                </Alert>
+              )}
+              
+              {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+                  <CircularProgress />
+                </Box>
+              ) : rows.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="h6" color="text.secondary">
+                    No subjects found for your department and semester
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Please contact your administrator if you believe this is an error.
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ height: 560, width: '100%' }}>
+                  <DataGrid 
+                    rows={rows} 
+                    columns={columns} 
+                    pageSize={10} 
+                    rowsPerPageOptions={[5,10,25]} 
+                    disableSelectionOnClick 
+                    sx={{ border: 0 }} 
+                  />
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Container>

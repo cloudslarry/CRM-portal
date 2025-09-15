@@ -2,11 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
-import { adminListApplicants } from '../../redux/actions/adminAction';
+import { adminListApplicants, adminApproveApplicant, adminRejectApplicant, adminPendingApplicant, adminMarkApplicantSeen } from '../../redux/actions/adminAction';
 import {
   Container,
-  Card,
-  CardContent,
   Typography,
   TextField,
   Stack,
@@ -16,7 +14,6 @@ import {
   Paper,
   IconButton,
   Tooltip,
-  Avatar,
   Chip,
   Button,
   InputAdornment,
@@ -25,17 +22,22 @@ import {
   Select,
   MenuItem
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 import {
   Search as SearchIcon,
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  CalendarToday as CalendarIcon,
   People as PeopleIcon,
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
   PersonAdd as PersonAddIcon,
-  Add as AddIcon
+  Person as PersonIcon,
+  CalendarToday as CalendarIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  HourglassBottom as HourglassBottomIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Check as CheckIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 
 const AdminApplicants = () => {
@@ -45,10 +47,21 @@ const AdminApplicants = () => {
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all'); // all | pending | approved | rejected
+  const [seenFilter, setSeenFilter] = useState('all'); // all | seen | unseen
 
   useEffect(() => {
     dispatch(adminListApplicants(q));
   }, [dispatch, q]);
+
+  // Refresh when the window regains focus (e.g., after returning from details)
+  useEffect(() => {
+    const onFocus = () => dispatch(adminListApplicants(q));
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [dispatch, q]);
+
+  const normalizeStatus = (s) => (s || 'pending').toString().trim().toLowerCase();
 
   const sortedApplicants = (applicants || []).sort((a, b) => {
     switch (sortBy) {
@@ -63,6 +76,25 @@ const AdminApplicants = () => {
     }
   });
 
+  // Stats
+  const totalViews = (applicants || []).filter(a => !!a.seen).length;
+  const unseenCount = (applicants || []).length - totalViews;
+  const approvedCount = (applicants || []).filter(a => normalizeStatus(a.status) === 'approved').length;
+  const pendingCount = (applicants || []).filter(a => normalizeStatus(a.status) === 'pending').length;
+  const rejectedCount = (applicants || []).filter(a => normalizeStatus(a.status) === 'rejected').length;
+  // Latest counters
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - 7);
+  const monthStart = new Date(now);
+  monthStart.setMonth(monthStart.getMonth() - 1);
+
+  const getDate = (x) => (x && x.createdAt ? new Date(x.createdAt) : null);
+  const todayCount = (applicants || []).filter(a => { const d = getDate(a); return d && d >= todayStart; }).length;
+  const weekCount = (applicants || []).filter(a => { const d = getDate(a); return d && d >= weekStart; }).length;
+  const monthCount = (applicants || []).filter(a => { const d = getDate(a); return d && d >= monthStart; }).length;
+
   const getInitials = (name) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -71,6 +103,87 @@ const AdminApplicants = () => {
     setQ('');
     setSortBy('newest');
   };
+
+  const onApprove = async (id) => {
+    await dispatch(adminApproveApplicant(id));
+  };
+  const onReject = async (id) => {
+    await dispatch(adminRejectApplicant(id));
+  };
+  const onPending = async (id) => {
+    await dispatch(adminPendingApplicant(id));
+  };
+
+  // Table rows
+  const rows = sortedApplicants
+    .filter(a => a.name?.toLowerCase().includes(q.toLowerCase()) || a.email?.toLowerCase().includes(q.toLowerCase()))
+    .filter(a => statusFilter === 'all' ? true : normalizeStatus(a.status) === statusFilter)
+    .filter(a => seenFilter === 'all' ? true : ((a.seen || false) === (seenFilter === 'seen')))
+    .map(a => ({
+      id: a._id,
+      name: a.name,
+      email: a.email,
+      department: a.department || '—',
+      year: a.year || '—',
+      status: a.status || 'pending',
+      statusKey: normalizeStatus(a.status),
+      seen: !!a.seen,
+      createdAt: a.createdAt
+    }));
+
+  const columns = [
+    { field: 'name', headerName: 'Name', flex: 1.3, minWidth: 160 },
+    { field: 'email', headerName: 'Email', flex: 1.6, minWidth: 220 },
+    { field: 'department', headerName: 'Department', flex: 1, minWidth: 130 },
+    { field: 'year', headerName: 'Year', width: 100 },
+    {
+      field: 'status', headerName: 'Status', width: 120,
+      renderCell: (params) => (
+        <Chip size="small" label={params.row.status} color={params.row.statusKey === 'approved' ? 'success' : params.row.statusKey === 'rejected' ? 'error' : 'default'} sx={{ textTransform: 'capitalize' }} />
+      )
+    },
+    {
+      field: 'seen', headerName: 'Seen', width: 90,
+      renderCell: (params) => (
+        <Chip size="small" label={params.value ? 'Seen' : 'Unseen'} color={params.value ? 'default' : 'warning'} />
+      )
+    },
+    {
+      field: 'createdAt', headerName: 'Applied On', width: 150,
+      renderCell: (params) => {
+        const d = params.value ? new Date(params.value) : null;
+        return <Typography variant="body2">{d && !isNaN(d) ? d.toLocaleDateString() : '-'}</Typography>;
+      }
+    },
+    {
+      field: 'actions', headerName: 'Actions', width: 240, sortable: false,
+      renderCell: (params) => (
+        <Stack direction="row" spacing={1}>
+          <Tooltip title="Approve">
+            <span>
+              <IconButton size="small" color="success" onClick={() => onApprove(params.row.id)}>
+                <CheckIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Decline">
+            <span>
+              <IconButton size="small" color="error" onClick={() => onReject(params.row.id)}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="View">
+            <span>
+              <IconButton size="small" onClick={async () => { await dispatch(adminMarkApplicantSeen(params.row.id)); navigate(`/admin/applicants/${params.row.id}`); }}>
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Stack>
+      )
+    }
+  ];
 
   return (
     <AdminLayout>
@@ -93,7 +206,7 @@ const AdminApplicants = () => {
           {/* Header */}
           <Box sx={{ 
             mb: { xs: 1.5, sm: 2, md: 3, lg: 4 }, 
-            textAlign: 'center',
+            textAlign: 'left',
             p: { xs: 1, sm: 2 }
           }}>
             <Box sx={{ 
@@ -106,25 +219,18 @@ const AdminApplicants = () => {
             }}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography 
-                  variant="h4" 
+                  variant="h6" 
                   component="h1" 
                   sx={{ 
-                    fontWeight: 'bold', 
-                    mb: { xs: 0.5, sm: 1 },
-                    fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2rem', lg: '2.5rem' },
+                    fontWeight: 700, 
+                    mb: 0.5,
+                    fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
                     lineHeight: 1.2
                   }}
                 >
                   Applicants Management
                 </Typography>
-                <Typography 
-                  variant="body1" 
-                  color="text.secondary"
-                  sx={{ 
-                    fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                    lineHeight: 1.4
-                  }}
-                >
+                <Typography variant="caption" color="text.secondary">
                   Manage and view all applicant information
                 </Typography>
               </Box>
@@ -179,82 +285,53 @@ const AdminApplicants = () => {
           </Box>
 
         {/* Stats Overview */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={4}>
-            <Paper sx={{ 
-              p: 3, 
-              textAlign: 'center',
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 40px rgba(102, 126, 234, 0.4)'
-              }
-            }}>
-              <PeopleIcon sx={{ fontSize: 48, mb: 2, opacity: 0.9 }} />
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Total Applicants
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                {applicants?.length || 0}
-              </Typography>
+        <Grid container spacing={1.5} sx={{ mb: 2 }}>
+          <Grid item xs={6} sm={4} md={2}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', cursor: 'pointer', '&:hover': { boxShadow: 2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minHeight: 96 }} onClick={() => { setStatusFilter('all'); setSeenFilter('all'); }}>
+              <PeopleIcon fontSize="small" color="primary" />
+              <Typography variant="body2" color="text.secondary">Total</Typography>
+              <Typography variant="h5">{applicants?.length || 0}</Typography>
+              <Typography variant="caption" color="text.secondary">Today {todayCount} • Week {weekCount} • Month {monthCount}</Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <Paper sx={{ 
-              p: 3, 
-              textAlign: 'center',
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white',
-              boxShadow: '0 8px 32px rgba(240, 147, 251, 0.3)',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 40px rgba(240, 147, 251, 0.4)'
-              }
-            }}>
-              <PersonIcon sx={{ fontSize: 48, mb: 2, opacity: 0.9 }} />
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                This Month
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                {(applicants || []).filter(a => {
-                  const monthAgo = new Date();
-                  monthAgo.setMonth(monthAgo.getMonth() - 1);
-                  return new Date(a.createdAt) > monthAgo;
-                }).length}
-              </Typography>
+          <Grid item xs={6} sm={4} md={2}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', cursor: 'pointer', '&:hover': { boxShadow: 2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minHeight: 96 }} onClick={() => setStatusFilter('pending')}>
+              <HourglassBottomIcon fontSize="small" color="warning" />
+              <Typography variant="body2" color="text.secondary">Pending</Typography>
+              <Typography variant="h5" color="warning.main">{pendingCount}</Typography>
+              <Typography variant="caption" color="text.secondary">Today { (applicants||[]).filter(a=> (a.status||'pending').toLowerCase()==='pending' && new Date(a.createdAt) >= todayStart).length }</Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <Paper sx={{ 
-              p: 3, 
-              textAlign: 'center',
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              color: 'white',
-              boxShadow: '0 8px 32px rgba(79, 172, 254, 0.3)',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 40px rgba(79, 172, 254, 0.4)'
-              }
-            }}>
-              <CalendarIcon sx={{ fontSize: 48, mb: 2, opacity: 0.9 }} />
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                This Week
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                {(applicants || []).filter(a => {
-                  const weekAgo = new Date();
-                  weekAgo.setDate(weekAgo.getDate() - 7);
-                  return new Date(a.createdAt) > weekAgo;
-                }).length}
-              </Typography>
+          <Grid item xs={6} sm={4} md={2}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', cursor: 'pointer', '&:hover': { boxShadow: 2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minHeight: 96 }} onClick={() => setStatusFilter('approved')}>
+              <CheckCircleIcon fontSize="small" color="success" />
+              <Typography variant="body2" color="text.secondary">Approved</Typography>
+              <Typography variant="h5" color="success.main">{approvedCount}</Typography>
+              <Typography variant="caption" color="text.secondary">Today { (applicants||[]).filter(a=> (a.status||'pending').toLowerCase()==='approved' && new Date(a.createdAt) >= todayStart).length }</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', cursor: 'pointer', '&:hover': { boxShadow: 2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minHeight: 96 }} onClick={() => setStatusFilter('rejected')}>
+              <CancelIcon fontSize="small" color="error" />
+              <Typography variant="body2" color="text.secondary">Rejected</Typography>
+              <Typography variant="h5" color="error.main">{rejectedCount}</Typography>
+              <Typography variant="caption" color="text.secondary">Today { (applicants||[]).filter(a=> (a.status||'pending').toLowerCase()==='rejected' && new Date(a.createdAt) >= todayStart).length }</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', cursor: 'pointer', '&:hover': { boxShadow: 2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minHeight: 96 }} onClick={() => setSeenFilter(seenFilter==='seen'?'all':'seen')}>
+              <VisibilityIcon fontSize="small" color="action" />
+              <Typography variant="body2" color="text.secondary">Views</Typography>
+              <Typography variant="h5">{totalViews}</Typography>
+              <Typography variant="caption" color="text.secondary">Unseen { (applicants||[]).length - totalViews }</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', cursor: 'pointer', '&:hover': { boxShadow: 2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minHeight: 96 }} onClick={() => setSeenFilter('unseen')}>
+              <VisibilityOffIcon fontSize="small" color="warning" />
+              <Typography variant="body2" color="text.secondary">Unseen</Typography>
+              <Typography variant="h5" color="warning.main">{unseenCount}</Typography>
+              <Typography variant="caption" color="text.secondary">Tap to filter unseen</Typography>
             </Paper>
           </Grid>
         </Grid>
@@ -262,6 +339,7 @@ const AdminApplicants = () => {
           {/* Search and Filter Bar */}
           <Paper sx={{ 
             p: { xs: 0.5, sm: 0.75, md: 1 }, 
+            mt: { xs: 1.5, sm: 2 },
             mb: { xs: 1, sm: 1.5 }, 
             borderRadius: { xs: 1, sm: 2 },
             width: '100%',
@@ -348,121 +426,36 @@ const AdminApplicants = () => {
                 </Box>
               </Grid>
             </Grid>
+            {showFilters && (
+              <Box sx={{ mt: 1.25, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ mr: 1 }}>Status:</Typography>
+                {['all','pending','approved','rejected'].map(s => (
+                  <Chip key={s} size="small" label={s.toUpperCase()} color={statusFilter===s?'primary':'default'} onClick={() => setStatusFilter(s)} sx={{ textTransform: 'uppercase' }} />
+                ))}
+                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                <Typography variant="body2" sx={{ mr: 1 }}>Seen:</Typography>
+                {['all','seen','unseen'].map(s => (
+                  <Chip key={s} size="small" label={s.toUpperCase()} color={seenFilter===s?'primary':'default'} onClick={() => setSeenFilter(s)} sx={{ textTransform: 'uppercase' }} />
+                ))}
+              </Box>
+            )}
           </Paper>
 
-        {/* Applicants List */}
-        <Grid container spacing={3}>
-          {sortedApplicants.map((applicant) => (
-            <Grid item xs={12} sm={6} md={4} key={applicant._id}>
-              <Card sx={{ 
-                height: '100%',
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                border: '1px solid rgba(0,0,0,0.05)',
-                transition: 'all 0.3s ease',
-                '&:hover': { 
-                  transform: 'translateY(-8px)',
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
-                }
-              }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar 
-                      sx={{ 
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        mr: 2,
-                        width: 64,
-                        height: 64,
-                        fontSize: '1.5rem',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      {getInitials(applicant.name)}
-                    </Avatar>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        {applicant.name}
-                      </Typography>
-                      <Chip 
-                        label="Registered" 
-                        color="success" 
-                        size="small"
-                        sx={{
-                          borderRadius: 2,
-                          fontWeight: 'bold',
-                          background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
-                          color: 'white'
-                        }}
-                      />
-                    </Box>
-                  </Box>
-
-                  <Stack spacing={2} sx={{ mb: 3 }}>
-                    <Typography variant="body2" sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1.5,
-                      p: 1,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(0,0,0,0.02)'
-                    }}>
-                      <EmailIcon fontSize="small" color="primary" />
-                      {applicant.email}
-                    </Typography>
-                    {applicant.contactNumber && (
-                      <Typography variant="body2" sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1.5,
-                        p: 1,
-                        borderRadius: 2,
-                        bgcolor: 'rgba(0,0,0,0.02)'
-                      }}>
-                        <PhoneIcon fontSize="small" color="primary" />
-                        {applicant.contactNumber}
-                      </Typography>
-                    )}
-                    <Typography variant="body2" sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1.5,
-                      p: 1,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(0,0,0,0.02)'
-                    }}>
-                      <CalendarIcon fontSize="small" color="primary" />
-                      Registered: {new Date(applicant.createdAt).toLocaleDateString()}
-                    </Typography>
-                  </Stack>
-
-                  <Divider sx={{ my: 2 }} />
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                      ID: {applicant._id.slice(-8)}
-                    </Typography>
-                    <Tooltip title="View Details">
-                      <IconButton 
-                        size="small" 
-                        sx={{
-                          bgcolor: 'primary.main',
-                          color: 'white',
-                          '&:hover': {
-                            bgcolor: 'primary.dark',
-                            transform: 'scale(1.1)'
-                          },
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <PersonIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        {/* Applicants Table */}
+        <Paper sx={{ p: 0, overflow: 'hidden' }}>
+          <div style={{ width: '100%' }}>
+            <DataGrid
+              autoHeight
+              rows={rows}
+              columns={columns}
+              pageSize={10}
+              rowsPerPageOptions={[10, 25, 50]}
+              disableRowSelectionOnClick
+              density="compact"
+              sx={{ border: 0 }}
+            />
+          </div>
+        </Paper>
 
         {sortedApplicants.length === 0 && (
           <Box sx={{ 

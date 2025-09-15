@@ -26,7 +26,9 @@ import {
   AdminAddSubject,
   AdminAddDepartment,
   AdminGetDepartments,
+  AdminAssignHostel,
   AdminSettings,
+  AdminApplicantDetails,
   FacultySettings,
   AdminAssignSubject,
   StudentSettings,
@@ -82,7 +84,6 @@ import {
   CollegeInfo,
   AdminApplicants,
   AdminAddApplicant,
-  AdminApplications,
 } from "./pages";
 
 //Handle JWT Token with validation
@@ -205,7 +206,7 @@ function App() {
           />
           <Route exact path="/student/notifications" element={<StudentNotifications />} />
           <Route exact path="/admin/notifications" element={<AdminNotifications />} />
-          <Route exact path="/admin/applications" element={<AdminApplications />} />
+          <Route exact path="/admin/applications" element={<AdminApplicants />} />
           <Route exact path="/faculty/notifications" element={<FacultyNotifications />} />
           <Route exact path="/faculty/subjects" element={<FacultySubjectList />} />
           <Route
@@ -223,6 +224,12 @@ function App() {
             path="/admin/assign-subject"
             element={<AdminAssignSubject />}
           />
+          <Route
+            exact
+            path="/admin/assign-hostel"
+            element={<AdminAssignHostel />}
+          />
+          <Route exact path="/admin/applicants/:id" element={<AdminApplicantDetails />} />
           <Route
             exact
             path="/admin/settings"
@@ -322,6 +329,7 @@ function App() {
           <Route exact path="/applicant/courses" element={<ApplicantCourses />} />
           <Route exact path="/applicant/college-info" element={<ApplicantCollegeInfo />} />
         </Routes>
+        {/* Removed fallback 404 route */}
       </Router>
     </>
   );

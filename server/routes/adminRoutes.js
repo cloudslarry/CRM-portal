@@ -32,6 +32,7 @@ const {
   assignSubjectToFaculty,
   addApplicant,
   getAllApplicants,
+  getApplicantById,
   updateApplicantStatus,
   deleteApplicant,
 } = require("../controllers/adminController");
@@ -160,6 +161,13 @@ router.post(
   assignAllStudentsToHostels
 );
 
+// Hostel Assignment Routes
+router.post(
+  "/assign-student-to-hostel",
+  passport.authenticate("jwt", { session: false }),
+  require("../controllers/roomController").assignStudentToRoom
+);
+
 // Applicant Management Routes
 router.post(
   "/addApplicant",
@@ -170,6 +178,11 @@ router.post(
   "/getAllApplicants",
   passport.authenticate("jwt", { session: false }),
   getAllApplicants
+);
+router.get(
+  "/applicant/:id",
+  passport.authenticate("jwt", { session: false }),
+  getApplicantById
 );
 router.put(
   "/applicant/:id/status",

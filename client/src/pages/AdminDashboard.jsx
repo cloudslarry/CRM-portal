@@ -371,49 +371,7 @@ const AdminDashboard = () => {
           </Grid>
           
           {/* Assign Students to Hostels Button */}
-          <Grid item xs={12} sm={6} md={3} sx={{ width: '100%' }}>
-            <Card sx={{ 
-              textAlign: 'center', 
-              p: { xs: 1, sm: 1.5, md: 2 }, 
-              cursor: 'pointer', 
-              '&:hover': { transform: 'translateY(-2px)' }, 
-              transition: 'all 0.2s',
-              height: '100%',
-              width: '100%',
-              boxSizing: 'border-box'
-            }} onClick={handleAssignAllStudentsToHostels}>
-              <CardContent sx={{ 
-                p: { xs: 0.5, sm: 1, md: 1.5 },
-                '&:last-child': { pb: { xs: 0.5, sm: 1, md: 1.5 } }
-              }}>
-                <HomeIcon sx={{ 
-                  fontSize: { xs: 28, sm: 32, md: 40 }, 
-                  color: 'success.main', 
-                  mb: { xs: 0.5, sm: 1 }
-                }} />
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600,
-                    fontSize: { xs: '0.9rem', sm: '1rem', md: '1.25rem' },
-                    mb: { xs: 0.5, sm: 1 }
-                  }}
-                >
-                  {isAssigningStudents ? 'Assigning...' : 'Assign to Hostels'}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary"
-                  sx={{ 
-                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
-                    lineHeight: 1.2
-                  }}
-                >
-                  Auto-assign all students
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          
         </Grid>
 
         {/* Statistics and Profile */}
