@@ -27,7 +27,11 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(fileUpload());
+// Avoid conflict between express-fileupload and multer on /api/books endpoints
+app.use((req, res, next) => {
+  if (req.path && req.path.startsWith('/api/books')) return next();
+  return fileUpload()(req, res, next);
+});
 app.use(passport.initialize());
 require("./config/passport")(passport);
 
@@ -232,6 +236,7 @@ const studentCollegeFeeRoutes = require("./routes/student/collegeFeeRoutes");
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chatRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
+const bookRoutes = require('./routes/bookRoutes');
 console.log("✅ auth.js file has been loaded successfully!");
 console.log("✅ chatRoutes.js file has been loaded successfully!");
 console.log("✅ departmentRoutes.js file has been loaded successfully!");
@@ -256,6 +261,8 @@ app.use("/api/student/receipts", studentReceiptRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/department', departmentRoutes);
+app.use('/api/books', bookRoutes);
+console.log("✅ bookRoutes mounted at /api/books");
 // REMOVED: The broad alias `app.use('/api/student', studentReceiptRoutes)`
 // was removed to prevent conflicts with other student routes.
 

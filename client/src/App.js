@@ -43,6 +43,7 @@ import {
   StudentUpdateProfile,
   StudentUpdatePassword,
   StudentSearch,
+  StudentLibrary,
   StudentDetails,
   FacultyUpdateProfile,
   FacultyUpdatePassword,
@@ -51,6 +52,8 @@ import {
   StudentChats,
   StudentNotifications,
   FacultyNotifications,
+  FacultyLibrary,
+  FacultyLibraryForm,
   // Admin Hostel Management
   HostelList,
   HostelForm,
@@ -281,6 +284,7 @@ function App() {
             path="/student/attendance"
             element={<StudentAttendance />}
           />
+          <Route exact path="/student/library" element={<StudentLibrary />} />
           <Route exact path="/student/search" element={<StudentSearch />} />
           <Route exact path="/student/chatList" element={<StudentChats />} />
           <Route exact path="/student/chat" element={<Chat />} />
@@ -305,6 +309,9 @@ function App() {
             path="/faculty/attendance"
             element={<FacultyAttendance />}
           />
+          <Route exact path="/faculty/library" element={<FacultyLibrary />} />
+          <Route exact path="/faculty/library/new" element={<FacultyLibraryForm />} />
+          <Route exact path="/faculty/library/edit/:id" element={<FacultyLibraryForm />} />
           <Route
             exact
             path="/student/updatePassword"

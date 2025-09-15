@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Typography, useTheme, useMediaQuery, Badge } from '@mui/material'
-import { Dashboard as DashboardIcon, LibraryBooks as SubjectsIcon, Assessment as PerformanceIcon, Group as AttendanceIcon, Search as SearchIcon, Chat as ChatIcon, Message as MessageIcon, ExitToApp as ExitToAppIcon, Settings as SettingsIcon, Person as PersonIcon, Home as HomeIcon } from '@mui/icons-material'
+import { Dashboard as DashboardIcon, LibraryBooks as SubjectsIcon, LibraryBooks as LibraryIcon, Assessment as PerformanceIcon, Group as AttendanceIcon, Search as SearchIcon, Chat as ChatIcon, Message as MessageIcon, ExitToApp as ExitToAppIcon, Settings as SettingsIcon, Person as PersonIcon, Home as HomeIcon } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { studentLogout } from '../redux/actions/studentAction'
@@ -51,6 +51,7 @@ const StudentSidebar = ({ open, onClose, width = 280 }) => {
   const items = [
     { label: 'Dashboard', icon: <DashboardIcon/>, path: '/home', color: 'primary' },
     { label: 'Subjects', icon: <SubjectsIcon/>, path: '/student/subjects', color: 'info' },
+    { label: 'Library', icon: <LibraryIcon/>, path: '/student/library', color: 'info' },
     { label: 'Performance', icon: <PerformanceIcon/>, path: '/student/performance', color: 'success' },
     { label: 'Attendance', icon: <AttendanceIcon/>, path: '/student/attendance', color: 'warning' },
     { label: 'My Hostel', icon: <HomeIcon/>, path: '/student/hostel', color: 'info' },

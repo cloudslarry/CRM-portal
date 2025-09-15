@@ -15,6 +15,8 @@ export { default as StudentUpdatePassword } from "./Student/StudentUpdatePasswor
 export { default as FacultyUpdatePassword } from "./Faculty/FacultyUpdatePassword";
 export { default as FacultyUploadMarks } from "./Faculty/FacultyUploadMarks";
 export { default as FacultyAttendance } from "./Faculty/FacultyAttendance";
+export { default as FacultyLibrary } from "./Faculty/FacultyLibrary";
+export { default as FacultyLibraryForm } from "./Faculty/FacultyLibraryForm";
 export { default as AdminGetFaculty } from "./Admin/AdminGetFaculty";
 export { default as AdminGetStudents } from "./Admin/AdminGetStudents";
 export { default as AdminGetSubjects } from "./Admin/AdminGetSubjects";
@@ -29,6 +31,7 @@ export { default as AdminSettings } from "./Admin/AdminSettings";
 export { default as FacultySettings } from "./Faculty/FacultySettings";
 export { default as StudentSettings } from "./Student/StudentSettings";
 export { default as StudentSearch } from "./Student/StudentSearch";
+export { default as StudentLibrary } from "./Student/StudentLibrary";
 export { default as ForgotPassword } from "./ForgotPassword";
 export { default as Chat } from "./Chat";
 export { default as AdminLogin } from "./AdminLogin";

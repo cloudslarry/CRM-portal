@@ -16,6 +16,7 @@ const Notification = require('./Notification');
 const Room = require('./Room');
 const Student = require('./Student');
 const Subject = require('./Subject');
+const Book = require('./Book');
 
 // Export all models
 module.exports = {
@@ -32,6 +33,7 @@ module.exports = {
   Notification,
   Room,
   Student,
-  Subject
+  Subject,
+  Book
 };
 
