@@ -1,300 +1,14 @@
 import api from "../../config/api";
 import authToken from "../utils/authToken";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import {
   SET_STUDENT,
   SET_ERRORS_HELPER,
   SET_ERRORS,
-  STUDENT_UPDATE_PASSWORD,
-  SET_OTP,
   SET_FLAG,
 } from "../actionTypes";
 
-export const chatHistory = (data) => {
-  return {
-    type: "SET_CHAT",
-    payload: data,
-  };
-};
-
-export const chatHelp = (data) => {
-  return {
-    type: "CHAT_HELPER",
-    payload: data,
-  };
-};
-
-export const getStudentByRegNumHelper = (data) => {
-  return {
-    type: "GET_STUDENT_BY_REG_NUM",
-    payload: data,
-  };
-};
-
-export const setStudent = (data) => {
-  return {
-    type: "SET_STUDENT",
-    payload: data,
-  };
-};
-
-const privateConversation = (data) => {
-  return {
-    type: "GET_PRIVATE_CONVERSATION",
-    payload: data,
-  };
-};
-
-const privateConversation2 = (data) => {
-  return {
-    type: "GET_PRIVATE_CONVERSATION2",
-    payload: data,
-  };
-};
-
-const newerChatsHelper = (data) => {
-  return {
-    type: "GET_NEWER_CHATS",
-    payload: data,
-  };
-};
-
-const previousChatsHelper = (data) => {
-  return {
-    type: "GET_PREVIOUS_CHATS",
-    payload: data,
-  };
-};
-
-const getAllSubjectsHelper = (data) => {
-  return {
-    type: "GET_ALL_SUBJECTS",
-    payload: data,
-  };
-};
-
-const fetchAttendenceHelper = (data) => {
-  return {
-    type: "GET_ATTENDENCE",
-    payload: data,
-  };
-};
-
-const getMarksHelper = (data) => {
-  return {
-    type: "GET_MARKS",
-    payload: data,
-  };
-};
-
-export const studentLogin = (studentCredentials) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.post(
-        "/api/student/login",
-        studentCredentials
-      );
-      const { token } = data;
-
-      localStorage.setItem("studentToken", token);
-      authToken(token);
-
-      const decoded = jwt_decode(token);
-      dispatch(setStudent(decoded));
-    } catch (err) {
-      dispatch({
-        type: SET_ERRORS_HELPER,
-        payload: err.response.data,
-      });
-    }
-  };
-};
-
-export const studentUpdatePassword = (passwordData) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.post(
-        "/api/student/updatePassword",
-        passwordData
-      );
-      //alert("Password Updated Successfully");
-    } catch (err) {
-      dispatch({
-        type: SET_ERRORS_HELPER,
-        payload: err.response.data,
-      });
-    }
-  };
-};
-
-export const chatHelper = (name) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.post("/api/student/getStudentByName", name);
-      dispatch(chatHelp(data.result));
-    } catch (err) {
-      console.log("Error in getting recent messages");
-    }
-  };
-};
-
-export const getStudentByRegNum = (registrationNumber) => {
-  return async (dispatch) => {
-    try {
-      // console.log(registrationNumber);
-      const { data } = await api.post("/api/student/getStudentByRegNum", {
-        registrationNumber,
-      });
-      dispatch(getStudentByRegNumHelper(data.result));
-    } catch (err) {
-      console.log(err);
-    }
-  };
-};
-
-export const getOTPStudent = (email) => {
-  return async (dispatch) => {
-    try {
-      await api.post("/api/student/forgotPassword", email);
-      alert("OTP sent to your email");
-      dispatch({ type: SET_FLAG });
-    } catch (err) {
-      dispatch({
-        type: SET_ERRORS,
-        payload: err.response.data,
-      });
-    }
-  };
-};
-
-export const submitOTPStudent = (credentials) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.post("/api/student/postOTP", credentials);
-      alert("Password updated. Please login again");
-    } catch (err) {
-      dispatch({
-        type: SET_ERRORS,
-        payload: err.response.data,
-      });
-    }
-  };
-};
-
-export const sendMessage = (room, messageObj) => {
-  return async () => {
-    try {
-      const { data } = await api.post(
-        `/api/student/chat/${room}`,
-        messageObj
-      );
-    } catch (err) {
-      console.log("Error in sending message", err.message);
-    }
-  };
-};
-
-export const getPrivateConversation = (roomId) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.get(`/api/student/chat/${roomId}`);
-      dispatch(privateConversation(data.result));
-    } catch (err) {
-      console.log("Error in sending message", err.message);
-    }
-  };
-};
-
-export const getPrivateConversation2 = (roomId) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.get(`/api/student/chat/${roomId}`);
-      dispatch(privateConversation2(data.result));
-    } catch (err) {
-      console.log("Error in sending message", err.emssage);
-    }
-  };
-};
-
-export const previousChats = (senderName) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.get(
-        `/api/student/chat/previousChats/${senderName}`
-      );
-      dispatch(previousChatsHelper(data.result));
-    } catch (err) {
-      console.log("Error in sending message", err.message);
-    }
-  };
-};
-
-export const newerChats = (receiverName) => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.get(
-        `/api/student/chat/newerChats/${receiverName}`
-      );
-      dispatch(newerChatsHelper(data.result));
-    } catch (err) {
-      console.log("Error in sending message", err.message);
-    }
-  };
-};
-
-export const studentUpdate = (updatedData) => {
-  return async () => {
-    try {
-      const config = {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      };
-
-      const { data } = await api.put(
-        `/api/student/updateProfile`,
-        updatedData,
-        config
-      );
-    } catch (err) {
-      console.log("Error in updating student info", err.message);
-    }
-  };
-};
-
-export const getAllSubjects = () => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.get("/api/student/getAllSubjects");
-      dispatch(getAllSubjectsHelper(data.result));
-    } catch (err) {
-      console.log("Error in getting subjects", err.message);
-    }
-  };
-};
-
-export const fetchAttendance = () => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.get("/api/student/checkAttendance");
-      dispatch(fetchAttendenceHelper(data.result));
-    } catch (err) {
-      console.log("Error in fetching attendance", err.message);
-    }
-  };
-};
-
-export const getMarks = () => {
-  return async (dispatch) => {
-    try {
-      const { data } = await api.get("/api/student/getMarks");
-      dispatch(getMarksHelper(data.result));
-    } catch (err) {
-      console.log("Error in getting marks", err.message);
-    }
-  };
-};
-
+// This is a plain action creator, useful in multiple places
 export const setStudentUser = (data) => {
   return {
     type: SET_STUDENT,
@@ -302,8 +16,177 @@ export const setStudentUser = (data) => {
   };
 };
 
+export const studentLogin = (studentCredentials) => async (dispatch) => {
+  try {
+    const { data } = await api.post("/api/student/login", studentCredentials);
+    const { token } = data;
+    
+    // FIXED: Strip "Bearer " prefix if present before storing
+    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+    localStorage.setItem("studentToken", cleanToken);
+    authToken(cleanToken);
+    const decoded = jwtDecode(cleanToken);
+    dispatch(setStudentUser(decoded)); // Using the action creator
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "Network Error" },
+    });
+  }
+};
+
 export const studentLogout = () => (dispatch) => {
   localStorage.removeItem("studentToken");
   authToken(false);
-  dispatch(setStudent({}));
+  dispatch(setStudentUser({})); // Using the action creator
+};
+
+export const studentUpdatePassword = (passwordData) => async (dispatch) => {
+  try {
+    await api.post("/api/student/updatePassword", passwordData);
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS_HELPER,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const getStudentByRegNum = (registrationNumber) => async (dispatch) => {
+  try {
+    const { data } = await api.post("/api/student/getStudentByRegNum", {
+      registrationNumber,
+    });
+    dispatch({ type: "GET_STUDENT_BY_REG_NUM", payload: data.result });
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const getAllSubjects = () => async (dispatch) => {
+  try {
+    const { data } = await api.get("/api/student/getAllSubjects");
+    dispatch({ type: "GET_ALL_SUBJECTS", payload: data.result });
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const getMarks = () => async (dispatch) => {
+  try {
+    const { data } = await api.get("/api/student/getMarks");
+    dispatch({ type: "GET_MARKS", payload: data.result || {} });
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const fetchAttendance = () => async (dispatch) => {
+    try {
+        const { data } = await api.get("/api/student/checkAttendance");
+        dispatch({ type: "GET_ATTENDENCE", payload: data.result });
+    } catch (err) {
+        dispatch({
+            type: SET_ERRORS,
+            payload: err.response?.data || { message: "An error occurred" },
+        });
+    }
+};
+
+export const studentUpdate = (updatedData) => async (dispatch) => {
+  try {
+    const config = { headers: { "Content-Type": "multipart/form-data" } };
+    await api.put(`/api/student/updateProfile`, updatedData, config);
+  } catch (err) {
+     dispatch({
+        type: SET_ERRORS,
+        payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const getOTPStudent = (email) => async (dispatch) => {
+  try {
+    await api.post("/api/student/forgotPassword", email);
+    alert("OTP sent to your email");
+    dispatch({ type: SET_FLAG });
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const submitOTPStudent = (credentials) => async (dispatch) => {
+  try {
+    await api.post("/api/student/postOTP", credentials);
+    alert("Password updated. Please login again");
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+// --- RE-ADDED CHAT AND OTHER ACTIONS ---
+
+export const sendMessage = (room, messageObj) => async (dispatch) => {
+  try {
+    await api.post(`/api/student/chat/${room}`, messageObj);
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const getPrivateConversation = (roomId) => async (dispatch) => {
+  try {
+    const { data } = await api.get(`/api/student/chat/${roomId}`);
+    dispatch({ type: "GET_PRIVATE_CONVERSATION", payload: data.result });
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+// NOTE: getPrivateConversation2 was a duplicate and is not needed.
+// If you need it for a special purpose, you can add it back here.
+
+export const previousChats = (senderName) => async (dispatch) => {
+  try {
+    const { data } = await api.get(`/api/student/chat/previousChats/${senderName}`);
+    dispatch({ type: "GET_PREVIOUS_CHATS", payload: data.result });
+  } catch (err) {
+    dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
+};
+
+export const newerChats = (receiverName) => async (dispatch) => {
+  try {
+    const { data } = await api.get(`/api/student/chat/newerChats/${receiverName}`);
+    dispatch({ type: "GET_NEWER_CHATS", payload: data.result });
+  } catch (err) {
+     dispatch({
+      type: SET_ERRORS,
+      payload: err.response?.data || { message: "An error occurred" },
+    });
+  }
 };

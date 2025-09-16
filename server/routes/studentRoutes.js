@@ -6,6 +6,7 @@ const upload = require("../utils/multer");
 const {
   studentLogin,
   getAllStudents,
+  getAllStudentsForChat,
   getAllMarks,
   getAllSubjects,
   checkAttendance,
@@ -19,6 +20,9 @@ const {
   differentChats,
   previousChats,
   updateProfile,
+  getNotifications,
+  markNotificationAsRead,
+  getDashboardData,
 } = require("../controllers/studentController");
 
 //Auth and Profile Related
@@ -81,6 +85,11 @@ router.post(
   passport.authenticate("jwt", { session: false }),
   getAllStudents
 );
+router.get(
+  "/getAllStudentsForChat",
+  passport.authenticate("jwt", { session: false }),
+  getAllStudentsForChat
+);
 router.post(
   "/getStudentByRegNum",
   passport.authenticate("jwt", { session: false }),
@@ -90,6 +99,23 @@ router.post(
   "/getStudentByName",
   passport.authenticate("jwt", { session: false }),
   getStudentByName
+);
+
+// Dashboard and Notifications
+router.get(
+  "/dashboard",
+  passport.authenticate("jwt", { session: false }),
+  getDashboardData
+);
+router.get(
+  "/notifications",
+  passport.authenticate("jwt", { session: false }),
+  getNotifications
+);
+router.put(
+  "/notifications/:notificationId/read",
+  passport.authenticate("jwt", { session: false }),
+  markNotificationAsRead
 );
 
 module.exports = router;

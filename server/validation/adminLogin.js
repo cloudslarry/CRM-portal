@@ -9,7 +9,7 @@ const validateAdminLoginInput = (data) => {
   data.password = !isEmpty(data.password) ? data.password : "";
 
   if (!Validator.isLength(data.registrationNumber, { min: 12, max: 12 })) {
-    errors.registrationNumber = "Registration Number must be of 8 characters";
+    errors.registrationNumber = "Registration Number must be of 12 characters";
   }
 
   if (Validator.isEmpty(data.registrationNumber)) {

@@ -1,20 +1,41 @@
 import axios from "axios";
 
-// Create axios instance with base configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-
+// Create an Axios instance WITHOUT a baseURL.
+// This is the most important change. It allows the proxy in your
+// package.json file to handle the requests correctly during development.
 const api = axios.create({
-  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Add request interceptor for debugging
+// Add a request interceptor for debugging (this is very useful)
 api.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    // The URL will now be relative, e.g., "/api/student/login"
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    
+    // DEBUG: Log authorization header for troubleshooting
+    if (config.headers.Authorization) {
+      console.log('Authorization header:', config.headers.Authorization.substring(0, 20) + '...');
+      
+      // FIXED: Validate JWT token format before sending request
+      const token = config.headers.Authorization.replace('Bearer ', '');
+      const jwtPattern = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+      
+      if (!jwtPattern.test(token)) {
+        console.error('Invalid JWT token detected in request, clearing...');
+        delete config.headers.Authorization;
+        // Clear invalid tokens from localStorage
+        localStorage.removeItem('studentToken');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('facultyToken');
+      }
+    } else {
+      console.log('No Authorization header found');
+    }
+    
     return config;
   },
   (error) => {
@@ -22,7 +43,7 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Add a response interceptor for error handling (also useful)
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -34,4 +55,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-

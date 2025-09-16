@@ -1,0 +1,153 @@
+import React, { useState, useEffect } from 'react'
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Typography, useTheme, useMediaQuery, Badge } from '@mui/material'
+import { Dashboard as DashboardIcon, LibraryBooks as SubjectsIcon, Assessment as PerformanceIcon, Group as AttendanceIcon, Search as SearchIcon, Chat as ChatIcon, Message as MessageIcon, ExitToApp as ExitToAppIcon, Settings as SettingsIcon, Person as PersonIcon, Home as HomeIcon } from '@mui/icons-material'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { studentLogout } from '../redux/actions/studentAction'
+import api from '../config/api'
+
+const StudentSidebar = ({ open, onClose, width = 280 }) => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const dispatch = useDispatch()
+  const student = useSelector((s) => s.student)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    const fetchUnreadNotifications = async () => {
+      try {
+        // FIXED: Use correct path to access student ID from JWT token
+        const studentId = student.student?.id || student.student?.student?._id;
+        if (student.isAuthenticated && studentId) {
+          const response = await api.get(`/api/chat/notifications/${studentId}`);
+          if (response.data.success) {
+            setUnreadNotifications(response.data.data.pagination.unreadCount);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchUnreadNotifications();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchUnreadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [student.isAuthenticated, student.student?.id, student.student?.student?._id]);
+
+  // Listen for navigation to chat page to update notification count
+  useEffect(() => {
+    if (location.pathname === '/student/chat') {
+      // When user navigates to chat, reduce notification count
+      setUnreadNotifications(prev => Math.max(0, prev - 1));
+    }
+  }, [location.pathname]);
+
+  const items = [
+    { label: 'Dashboard', icon: <DashboardIcon/>, path: '/home', color: 'primary' },
+    { label: 'Subjects', icon: <SubjectsIcon/>, path: '/student/subjects', color: 'info' },
+    { label: 'Performance', icon: <PerformanceIcon/>, path: '/student/performance', color: 'success' },
+    { label: 'Attendance', icon: <AttendanceIcon/>, path: '/student/attendance', color: 'warning' },
+    { label: 'My Hostel', icon: <HomeIcon/>, path: '/student/hostel', color: 'info' },
+    { label: 'College Fees', icon: <HomeIcon/>, path: '/student/college/fees', color: 'info' },
+    { label: 'Hostel Fees', icon: <HomeIcon/>, path: '/student/hostel/fees', color: 'info' },
+    { label: 'Search', icon: <SearchIcon/>, path: '/student/search', color: 'secondary' },
+    { label: 'Start Chat', icon: <MessageIcon/>, path: '/student/chat', color: 'success', hasNotification: true },
+    { label: 'Settings', icon: <SettingsIcon/>, path: '/student/settings', color: 'secondary' },
+  ]
+
+  const isActive = (path) => location.pathname === path
+  const drawerWidth = open ? width : 64
+
+  return (
+    <Drawer
+      variant={isMobile ? 'temporary' : 'permanent'}
+      open={open || !isMobile}
+      onClose={onClose}
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          borderRight: '1px solid',
+          borderColor: 'divider',
+          transition: theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
+        },
+      }}
+    >
+      <Box sx={{ p: open ? 2 : 1, textAlign: 'center', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: open ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', minHeight: open ? 120 : 64 }}>
+        <Avatar sx={{ mx: 'auto', mb: open ? 1 : 0, bgcolor: 'primary.main', width: open ? 56 : 36, height: open ? 56 : 36 }} src={student.student?.student?.avatar?.url}>
+          <PersonIcon />
+        </Avatar>
+        {open && (
+          <>
+            <Typography variant="subtitle1" fontWeight={600}>{student.student?.student?.name || 'Student'}</Typography>
+            <Typography variant="caption" color="text.secondary">{student.student?.student?.registrationNumber || ''}</Typography>
+          </>
+        )}
+      </Box>
+      <List sx={{ flexGrow: 1 }}>
+        {items.map((item) => (
+          <ListItem key={item.label} disablePadding>
+            <ListItemButton
+              onClick={() => { navigate(item.path); if (isMobile) onClose?.() }}
+              sx={{
+                mx: 1, my: 0.25, borderRadius: 1,
+                backgroundColor: isActive(item.path) ? 'primary.main' : 'transparent',
+                color: isActive(item.path) ? 'common.white' : 'text.primary',
+                '&:hover': { backgroundColor: isActive(item.path) ? 'primary.dark' : 'action.hover' }
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 40, color: isActive(item.path) ? 'common.white' : `${item.color}.main` }}>
+                {item.hasNotification && unreadNotifications > 0 ? (
+                  <Badge 
+                    badgeContent={unreadNotifications} 
+                    color="error" 
+                    invisible={unreadNotifications === 0}
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: '0.7rem',
+                        minWidth: '16px',
+                        height: '16px',
+                        borderRadius: '8px'
+                      }
+                    }}
+                  >
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
+              {open && <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: isActive(item.path) ? 600 : 400 }} />}
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+      <Box sx={{ p: open ? 2 : 1, borderTop: '1px solid', borderColor: 'divider' }}>
+        <ListItemButton
+          onClick={() => { dispatch(studentLogout()); navigate('/') }}
+          sx={{ borderRadius: 2, color: 'error.main', justifyContent: open ? 'flex-start' : 'center', minHeight: open ? 'auto' : 48, '&:hover': { backgroundColor: 'error.light', color: 'common.white' } }}
+        >
+          <ListItemIcon sx={{ minWidth: open ? 40 : 'auto', justifyContent: 'center' }}>
+            <ExitToAppIcon color="error" />
+          </ListItemIcon>
+          {open && <ListItemText primary="Logout" />}
+        </ListItemButton>
+      </Box>
+    </Drawer>
+  )
+}
+
+export default StudentSidebar
+
+

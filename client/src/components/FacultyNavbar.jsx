@@ -1,9 +1,9 @@
 import React, {useState,useEffect} from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector} from 'react-redux'
-import {useAlert} from 'react-alert'
+import toast from 'react-hot-toast'
 
-import {Person,Dashboard,Ballot,VpnKey,ExitToApp,Group} from '@material-ui/icons'
+import {Person,Dashboard,Ballot,VpnKey,ExitToApp,Group} from '@mui/icons-material'
 import styled from 'styled-components'
 import {facultyLogout} from '../redux/actions/facultyAction'
 
@@ -59,11 +59,11 @@ const FacultyNavbar = () => {
     const faculty = useSelector((store) => store.faculty) 
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const alert = useAlert();
+    const alert = toast;
 
     const logoutHandler = () => {
       dispatch(facultyLogout());
-      alert.success("Logged Out");
+      toast.success("Logged Out");
       navigate('/');
     }
 

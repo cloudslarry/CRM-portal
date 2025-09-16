@@ -7,6 +7,7 @@ const validateStudentRegisterInput = (data) => {
   data.email = !isEmpty(data.email) ? data.email : "";
   data.department = !isEmpty(data.department) ? data.department : "";
   data.section = !isEmpty(data.section) ? data.section : "";
+  data.gender = !isEmpty(data.gender) ? data.gender : "";
   data.year = !isEmpty(data.year) ? data.year : "";
 
   if (!Validator.isLength(data.name, { min: 2, max: 30 })) {
@@ -35,6 +36,12 @@ const validateStudentRegisterInput = (data) => {
 
   if (Validator.isEmpty(data.section)) {
     errors.section = "Section field is required";
+  }
+
+  if (Validator.isEmpty(data.gender)) {
+    errors.gender = "Gender field is required";
+  } else if (!['Male','Female'].includes(data.gender)) {
+    errors.gender = "Gender must be Male or Female";
   }
 
   return {
