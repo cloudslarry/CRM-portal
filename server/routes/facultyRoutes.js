@@ -88,6 +88,11 @@ router.post(
   passport.authenticate("jwt", { session: false }),
   getAllSubjects
 );
+router.get(
+  "/getAllSubjects",
+  passport.authenticate("jwt", { session: false }),
+  getAllSubjects
+);
 router.post(
   "/markAttendance",
   passport.authenticate("jwt", { session: false }),

@@ -217,6 +217,40 @@ export const uploadMarks = (
   };
 };
 
+export const fetchSubjects = (department, year) => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.post("/api/faculty/fetchStudents", {
+        department,
+        year,
+        section: "A" // Default section, we only need subjects
+      });
+      dispatch(subjectCodeListHelper(data.subjectCode));
+    } catch (err) {
+      dispatch({
+        type: SET_ERRORS,
+        payload: err.response?.data || { message: "Failed to fetch subjects" },
+      });
+    }
+  };
+};
+
+export const getAllSubjects = () => {
+  return async (dispatch) => {
+    try {
+      const { data } = await api.get("/api/faculty/getAllSubjects");
+      // Convert to subject codes for compatibility
+      const subjectCodes = data.allSubjects.map(subject => subject.subjectCode);
+      dispatch(subjectCodeListHelper(subjectCodes));
+    } catch (err) {
+      dispatch({
+        type: SET_ERRORS,
+        payload: err.response?.data || { message: "Failed to fetch all subjects" },
+      });
+    }
+  };
+};
+
 export const setFacultyUser = (data) => {
   return {
     type: SET_FACULTY,

@@ -100,7 +100,7 @@ const sendMessage = async (req, res) => {
       }
       
       fileData = {
-        fileUrl: `/uploads/chatDocs/${file.filename}`,
+        fileUrl: `/uploads/chat/${file.filename}`,
         fileName: file.originalname,
         fileType: file.mimetype,
         fileSize: file.size

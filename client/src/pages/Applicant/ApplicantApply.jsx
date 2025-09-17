@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../config/api';
 import ApplicantLayout from '../../components/ApplicantLayout';
+import { getDepartmentOptions, getFullForm } from '../../config/departments';
 import { 
   Container, 
   Card, 
@@ -49,7 +50,13 @@ const ApplicantApply = () => {
     setSuccess('');
 
     try {
-      const { data } = await api.post('/api/applicant/apply', form);
+      // Convert department to full form before sending
+      const formData = {
+        ...form,
+        department: getFullForm(form.department)
+      };
+      
+      const { data } = await api.post('/api/applicant/apply', formData);
       setSuccess('Application submitted successfully! Your ADMID is: ' + data.result.admid);
       // Reset form
       setForm({
@@ -230,12 +237,18 @@ const ApplicantApply = () => {
                       onChange={(e) => handleChange('department', e.target.value)}
                       label="Department *"
                     >
-                      <MenuItem value="C.S.E">Computer Science Engineering</MenuItem>
-                      <MenuItem value="E.C.E">Electronics & Communication Engineering</MenuItem>
-                      <MenuItem value="I.T">Information Technology</MenuItem>
-                      <MenuItem value="Mechanical">Mechanical Engineering</MenuItem>
-                      <MenuItem value="Civil">Civil Engineering</MenuItem>
-                      <MenuItem value="E.E.E">Electrical & Electronics Engineering</MenuItem>
+                      {getDepartmentOptions().map(dept => (
+                        <MenuItem key={dept.value} value={dept.value}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {dept.value}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {dept.fullForm}
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </Grid>

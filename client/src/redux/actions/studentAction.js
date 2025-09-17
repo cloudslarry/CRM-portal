@@ -90,9 +90,9 @@ export const getMarks = () => async (dispatch) => {
   }
 };
 
-export const fetchAttendance = () => async (dispatch) => {
+export const fetchAttendance = (date) => async (dispatch) => {
     try {
-        const { data } = await api.get("/api/student/checkAttendance");
+        const { data } = await api.get(`/api/student/checkAttendance${date ? `?date=${date}` : ''}`);
         dispatch({ type: "GET_ATTENDENCE", payload: data.result });
     } catch (err) {
         dispatch({

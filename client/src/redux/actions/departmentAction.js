@@ -48,8 +48,8 @@ export const fetchDepartments = (params = {}) => {
     try {
       dispatch(setLoading(true));
       const { data } = await api.get("/api/department", { params });
-      dispatch(setDepartments(data.result || []));
-      return { success: true, data: data.result };
+      dispatch(setDepartments(data.data || []));
+      return { success: true, data: data.data };
     } catch (err) {
       const error = err.response?.data || { message: "Failed to fetch departments" };
       dispatch(setError(error));
@@ -65,8 +65,8 @@ export const createDepartment = (departmentData) => {
     try {
       dispatch(setLoading(true));
       const { data } = await api.post("/api/department/add", departmentData);
-      dispatch(addDepartment(data.result));
-      return { success: true, data: data.result };
+      dispatch(addDepartment(data.data));
+      return { success: true, data: data.data };
     } catch (err) {
       const error = err.response?.data || { message: "Failed to create department" };
       dispatch(setError(error));

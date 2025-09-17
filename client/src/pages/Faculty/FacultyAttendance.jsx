@@ -6,7 +6,7 @@ import { Box, Container, Card, CardContent, Typography, Grid, FormControl, Input
 import { Person as PersonIcon, CalendarToday as CalendarIcon, Search as SearchIcon, Class as ClassIcon, Check as CheckIcon, CalendarMonth as CalendarMonthIcon, People as PeopleIcon, Download as DownloadIcon } from '@mui/icons-material'
 import FacultyLayout from '../../components/FacultyLayout'
 
-import {fetchStudents,markAttendance} from '../../redux/actions/facultyAction'
+import {fetchStudents,markAttendance,fetchSubjects,getAllSubjects} from '../../redux/actions/facultyAction'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
@@ -59,6 +59,15 @@ const FacultyAttendance = () => {
         }
     }, [faculty.error])
 
+    // Fetch subjects when component loads
+    useEffect(() => {
+        if (department) {
+            dispatch(fetchSubjects(department, year || "1"));
+            // Also try to fetch all subjects as fallback
+            dispatch(getAllSubjects());
+        }
+    }, [dispatch, department, year])
+
     const getStudents = (e) => {
         e.preventDefault();
         if (!year || !section) {
@@ -66,7 +75,11 @@ const FacultyAttendance = () => {
           return;
         }
         setIsLoading(true);
+        // Fetch both students and subjects
         dispatch(fetchStudents(department,year,section)).finally(() => setIsLoading(false))
+        dispatch(fetchSubjects(department, year));
+        // Also try to fetch all subjects as fallback
+        dispatch(getAllSubjects());
     }
 
     const handleSubmitClick = (e) => {
@@ -229,7 +242,8 @@ const FacultyAttendance = () => {
 
               <Divider sx={{ my: 2 }} />
 
-              {faculty.allSubjectCodeList.length > 0 && (
+              {/* Always show submit section when students are loaded */}
+              {rows.length > 0 && (
                 <>
                   <Alert severity="info" sx={{ mb: 2 }}>
                     <Typography variant="body2">
@@ -248,19 +262,24 @@ const FacultyAttendance = () => {
                       {successMessage}
                     </Alert>
                   )}
+                  
                   <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6} md={3}>
                       <FormControl fullWidth error={!subjectCode && checkedValue.length > 0}>
                         <InputLabel>Subject *</InputLabel>
                         <Select value={subjectCode} label="Subject *" onChange={(e) => setSubjectCode(e.target.value)} startAdornment={<ClassIcon sx={{ mr: 1 }} />}>
                           <MenuItem value="">Select Subject</MenuItem>
-                          {faculty.allSubjectCodeList.map((code) => (
-                            <MenuItem key={code} value={code}>{code}</MenuItem>
-                          ))}
+                          {faculty.allSubjectCodeList && faculty.allSubjectCodeList.length > 0 ? (
+                            faculty.allSubjectCodeList.map((code) => (
+                              <MenuItem key={code} value={code}>{code}</MenuItem>
+                            ))
+                          ) : (
+                            <MenuItem value="" disabled>No subjects available</MenuItem>
+                          )}
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6} md={3}>
                       <TextField
                         fullWidth
                         label="Date *"
@@ -273,33 +292,55 @@ const FacultyAttendance = () => {
                         helperText={!date && checkedValue.length > 0 ? "Date is required" : ""}
                       />
                     </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Button 
-                      onClick={handleSubmitClick} 
-                      variant="contained" 
-                      color="success" 
-                      startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <CheckIcon />} 
-                      fullWidth 
-                      disabled={isSubmitting || checkedValue.length === 0 || !subjectCode || !date}
-                      sx={{ minHeight: 56 }}
-                    >
-                      {isSubmitting ? 'Submitting...' : `Submit Attendance (${checkedValue.length})`}
-                    </Button>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Button 
-                      variant="outlined" 
-                      onClick={downloadCSV} 
-                      fullWidth 
-                      disabled={!submittedIds.length}
-                      startIcon={<DownloadIcon />}
-                      sx={{ minHeight: 56 }}
-                    >
-                      Download CSV
-                    </Button>
-                  </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Button 
+                        onClick={handleSubmitClick} 
+                        variant="contained" 
+                        color="success" 
+                        startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <CheckIcon />} 
+                        fullWidth 
+                        disabled={isSubmitting || checkedValue.length === 0 || !subjectCode || !date}
+                        sx={{ 
+                          minHeight: 56,
+                          fontSize: '1rem',
+                          fontWeight: 'bold',
+                          boxShadow: 2,
+                          '&:hover': {
+                            boxShadow: 4,
+                            transform: 'translateY(-1px)'
+                          }
+                        }}
+                      >
+                        {isSubmitting ? 'Submitting...' : `Submit Attendance (${checkedValue.length})`}
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Button 
+                        variant="outlined" 
+                        onClick={downloadCSV} 
+                        fullWidth 
+                        disabled={!submittedIds.length}
+                        startIcon={<DownloadIcon />}
+                        sx={{ 
+                          minHeight: 56,
+                          fontSize: '1rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        Download CSV
+                      </Button>
+                    </Grid>
                   </Grid>
                 </>
+              )}
+
+              {/* Show message when no students are loaded */}
+              {rows.length === 0 && !isLoading && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    Please select Year, Section and click Search to load students for attendance marking.
+                  </Typography>
+                </Alert>
               )}
             </CardContent>
           </Card>
@@ -376,6 +417,7 @@ const FacultyAttendance = () => {
               </Box>
             </CardContent>
           </Card>
+
         </Container>
       </Box>
       

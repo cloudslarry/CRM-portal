@@ -45,11 +45,16 @@ const AdminGetDepartments = () => {
   }, [dispatch])
 
   const filteredDepartments = useMemo(() => {
-    if (!departments) return []
+    if (!departments || !Array.isArray(departments)) return []
+    if (!query) return departments
+    
+    const searchQuery = query.toLowerCase()
     return departments.filter(dept => 
-      dept.name.toLowerCase().includes(query.toLowerCase()) ||
-      dept.code.toLowerCase().includes(query.toLowerCase()) ||
-      (dept.description && dept.description.toLowerCase().includes(query.toLowerCase()))
+      dept && (
+        (dept.fullForm && dept.fullForm.toLowerCase().includes(searchQuery)) ||
+        (dept.shortForm && dept.shortForm.toLowerCase().includes(searchQuery)) ||
+        (dept.description && dept.description.toLowerCase().includes(searchQuery))
+      )
     )
   }, [departments, query])
 
@@ -72,13 +77,13 @@ const AdminGetDepartments = () => {
 
   const columns = [
     { 
-      field: 'code', 
+      field: 'shortForm', 
       headerName: 'Code', 
       flex: 1, 
       minWidth: 120,
       renderCell: (params) => (
         <Chip 
-          label={params.value} 
+          label={params.value || 'N/A'} 
           color="primary" 
           variant="outlined"
           size="small"
@@ -86,10 +91,15 @@ const AdminGetDepartments = () => {
       )
     },
     { 
-      field: 'name', 
+      field: 'fullForm', 
       headerName: 'Department Name', 
       flex: 2, 
-      minWidth: 220 
+      minWidth: 220,
+      renderCell: (params) => (
+        <Typography variant="body2" noWrap>
+          {params.value || 'N/A'}
+        </Typography>
+      )
     },
     { 
       field: 'description', 

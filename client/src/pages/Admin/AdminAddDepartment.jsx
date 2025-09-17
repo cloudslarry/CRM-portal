@@ -12,7 +12,11 @@ import {
   Avatar,
   Divider,
   CircularProgress,
-  Alert
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material'
 import { DomainAdd as DomainAddIcon, Save as SaveIcon, Clear as ClearIcon } from '@mui/icons-material'
 import AdminLayout from '../../components/AdminLayout'
@@ -23,15 +27,17 @@ const AdminAddDepartment = () => {
   const dispatch = useDispatch()
   const { loading, error } = useSelector((state) => state.department)
   
-  const [name, setName] = useState('')
-  const [code, setCode] = useState('')
+  const [shortForm, setShortForm] = useState('')
+  const [fullForm, setFullForm] = useState('')
   const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('Engineering')
   const [errors, setErrors] = useState({})
 
   const handleReset = () => {
-    setName('')
-    setCode('')
+    setShortForm('')
+    setFullForm('')
     setDescription('')
+    setCategory('Engineering')
     setErrors({})
     dispatch(clearDepartmentError())
   }
@@ -39,18 +45,18 @@ const AdminAddDepartment = () => {
   const validateForm = () => {
     const newErrors = {}
     
-    if (!name.trim()) {
-      newErrors.name = 'Department name is required'
-    } else if (name.trim().length < 2) {
-      newErrors.name = 'Department name must be at least 2 characters'
+    if (!fullForm.trim()) {
+      newErrors.fullForm = 'Department full form is required'
+    } else if (fullForm.trim().length < 5) {
+      newErrors.fullForm = 'Department full form must be at least 5 characters'
     }
     
-    if (!code.trim()) {
-      newErrors.code = 'Department code is required'
-    } else if (code.trim().length < 2) {
-      newErrors.code = 'Department code must be at least 2 characters'
-    } else if (!/^[A-Za-z0-9]+$/.test(code.trim())) {
-      newErrors.code = 'Department code must contain only letters and numbers'
+    if (!shortForm.trim()) {
+      newErrors.shortForm = 'Department short form is required'
+    } else if (shortForm.trim().length < 2) {
+      newErrors.shortForm = 'Department short form must be at least 2 characters'
+    } else if (!/^[A-Z0-9._-]+$/.test(shortForm.trim())) {
+      newErrors.shortForm = 'Short form can only contain uppercase letters, numbers, dots, underscores, and hyphens'
     }
     
     if (description.trim().length > 500) {
@@ -69,9 +75,16 @@ const AdminAddDepartment = () => {
     }
 
     const departmentData = {
-      name: name.trim(),
-      code: code.trim(),
-      description: description.trim()
+      shortForm: shortForm.trim().toUpperCase(),
+      fullForm: fullForm.trim(),
+      description: description.trim(),
+      category: category,
+      degreeTypes: ['Bachelor', 'Master'],
+      years: [1, 2, 3, 4],
+      sections: ['A', 'B', 'C', 'D'],
+      allowedRoles: ['admin', 'faculty', 'student', 'applicant'],
+      isActive: true,
+      isPublic: true
     }
 
     const result = await dispatch(createDepartment(departmentData))
@@ -109,27 +122,47 @@ const AdminAddDepartment = () => {
                   <Grid item xs={12} md={6}>
                     <TextField 
                       fullWidth 
-                      label="Department Name" 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)}
-                      error={!!errors.name}
-                      helperText={errors.name}
+                      label="Department Full Form" 
+                      value={fullForm} 
+                      onChange={(e) => setFullForm(e.target.value)}
+                      error={!!errors.fullForm}
+                      helperText={errors.fullForm}
                       required 
                       disabled={loading}
+                      placeholder="e.g., Computer Science Engineering"
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField 
                       fullWidth 
-                      label="Department Code" 
-                      value={code} 
-                      onChange={(e) => setCode(e.target.value)}
-                      error={!!errors.code}
-                      helperText={errors.code}
+                      label="Department Short Form" 
+                      value={shortForm} 
+                      onChange={(e) => setShortForm(e.target.value)}
+                      error={!!errors.shortForm}
+                      helperText={errors.shortForm}
                       required 
                       disabled={loading}
                       inputProps={{ style: { textTransform: 'uppercase' } }}
+                      placeholder="e.g., CSE"
                     />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required disabled={loading}>
+                      <InputLabel>Category</InputLabel>
+                      <Select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        label="Category"
+                      >
+                        <MenuItem value="Engineering">Engineering</MenuItem>
+                        <MenuItem value="Management">Management</MenuItem>
+                        <MenuItem value="Arts">Arts</MenuItem>
+                        <MenuItem value="Science">Science</MenuItem>
+                        <MenuItem value="Medical">Medical</MenuItem>
+                        <MenuItem value="Law">Law</MenuItem>
+                        <MenuItem value="Other">Other</MenuItem>
+                      </Select>
+                    </FormControl>
                   </Grid>
                   <Grid item xs={12}>
                     <TextField 

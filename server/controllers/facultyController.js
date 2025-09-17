@@ -70,34 +70,68 @@ exports.fetchStudents = async (req, res, next) => {
     }
 
     const { department, year, section } = req.body;
-    const subjectList = await Subject.find({ department, year });
-
-    if (subjectList.length === 0) {
-      errors.department = "No subjects found in given department";
-      return res.status(404).json(errors);
+    
+    // Convert department short form to full form for database lookup
+    const departmentMapping = {
+      'I.T': 'Information Technology',
+      'C.S.E': 'Computer Science',
+      'CSE': 'Computer Science',
+      'CS': 'Computer Science',
+      'E.C.E': 'Electronics & Communication',
+      'ECE': 'Electronics & Communication',
+      'CIVIL': 'Civil Engineering',
+      'MECHANICAL': 'Mechanical Engineering',
+      'ELECTRICAL': 'Electrical Engineering'
+    };
+    
+    const fullDepartmentName = departmentMapping[department] || department;
+    
+    // Find subjects with the short department name and year
+    // Map department short forms to database formats
+    const departmentVariations = [
+      department, // Try exact department
+      department.replace(/\./g, ''), // Remove dots (C.S.E -> CSE)
+      department.replace(/\./g, '_'), // Replace dots with underscores
+      department.replace(/\./g, ' '), // Replace dots with spaces
+    ];
+    
+    // Add reverse mapping (CSE -> C.S.E)
+    if (department === 'CSE') {
+      departmentVariations.push('C.S.E');
+    } else if (department === 'ECE') {
+      departmentVariations.push('E.C.E');
+    } else if (department === 'IT') {
+      departmentVariations.push('I.T');
     }
+    
+    const subjectList = await Subject.find({ 
+      department: { $in: departmentVariations },
+      year: year
+    });
 
+    console.log('Found subjects for department:', department, 'year:', year, 'count:', subjectList.length);
+    console.log('Subject codes:', subjectList.map(s => s.subjectCode));
+
+    // Find students with the full department name and numeric year
     const students = await Student.find({
-      department,
-      year,
-      section,
+      department: fullDepartmentName, // Use full form for students
+      year: parseInt(year),
+      section: section.toUpperCase(),
     });
 
     if (students.length === 0) {
-      errors.department = "No Student found";
+      errors.department = "No students found for the selected criteria";
       return res.status(404).json(errors);
     }
 
     res.status(200).json({
       result: students.map((student) => {
-        var student = {
+        return {
           _id: student._id,
           registrationNumber: student.registrationNumber,
           name: student.name,
           email: student.email,
         };
-
-        return student;
       }),
       subjectCode: subjectList.map((sub) => {
         return sub.subjectCode;
@@ -105,6 +139,11 @@ exports.fetchStudents = async (req, res, next) => {
     });
   } catch (err) {
     console.log("Error in fetchStudents", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching students",
+      error: err.message
+    });
   }
 };
 
@@ -324,16 +363,18 @@ exports.uploadMarks = async (req, res, next) => {
 exports.getAllSubjects = async (req, res, next) => {
   try {
     const allSubjects = await Subject.find({});
-    if (!allSubjects) {
+    console.log('getAllSubjects - Found subjects:', allSubjects.length);
+    if (!allSubjects || allSubjects.length === 0) {
       return res
         .status(404)
-        .json({ message: "You havent registered any subject yet." });
+        .json({ message: "No subjects found in database." });
     }
     res.status(200).json({ allSubjects });
   } catch (err) {
+    console.error('Error in getAllSubjects:', err);
     res
       .status(400)
-      .json({ message: `Error in getting all Subjects", ${err.message}` });
+      .json({ message: `Error in getting all Subjects: ${err.message}` });
   }
 };
 

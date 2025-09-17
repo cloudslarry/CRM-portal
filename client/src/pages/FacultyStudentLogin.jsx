@@ -130,7 +130,7 @@ const FacultyStudentLogin = () => {
                   <SchoolIcon sx={{ fontSize: 60 }} />
                 </Avatar>
                 <Typography variant="h2" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  Smart ERP
+                  VidyaVerse
                 </Typography>
                 <Typography variant="h5" sx={{ opacity: 0.9, fontWeight: 300 }}>
                   Student & Faculty Portal
@@ -168,6 +168,16 @@ const FacultyStudentLogin = () => {
                       <ToggleButton value="student">Student</ToggleButton>
                       <ToggleButton value="faculty">Faculty</ToggleButton>
                     </ToggleButtonGroup>
+                    <Box sx={{ mt: 2 }}>
+                      <Button
+                        component={Link}
+                        to="/admissions/apply"
+                        variant="outlined"
+                        size="small"
+                      >
+                        Apply for Admission
+                      </Button>
+                    </Box>
                   </Box>
 
                   {isStudentLogin ? (
