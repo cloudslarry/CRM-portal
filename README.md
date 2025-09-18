@@ -295,7 +295,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Team
 
 - **Daxesh Chothani** - Full Stack Developer
-- **Team Members** - [Add team member names]
+- **Team Members** - Dev Patel, Milap Modi, Pritesh Baghel, Krish Patel, Mahima Jha
 
 ## 🏆 SIH 2025
 
@@ -304,7 +304,7 @@ This project is developed for **Smart India Hackathon 2025** - a nationwide init
 ## 📞 Support
 
 For support and queries, please contact:
-- Email: [your-email@example.com]
+- Email: Daxeshchothani@gmail.com
 - GitHub Issues: [Create an issue](https://github.com/daxeshchothani/SIH-2025-ERP-based-Integrated-Student-Management-system/issues)
 
 ## 🙏 Acknowledgments
