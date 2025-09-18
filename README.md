@@ -80,6 +80,8 @@ A comprehensive **Enterprise Resource Planning (ERP) system** designed for educa
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
+![System Flow Chart](client/public/Flow_Chart_%20ERP-based%20Integrated%20Student%20Management%20system.svg)
+
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
