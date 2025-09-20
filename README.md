@@ -294,8 +294,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-- **Daxesh Chothani** - Full Stack Developer
-- **Team Members** - Dev Patel, Milap Modi, Pritesh Baghel, Krish Patel, Mahima Jha
+- **Daxesh Chothani, Dev Patel, Milap Modi** - Full Stack Developer
+- **Team Members** - Pritesh Baghel, Krish Patel, Mahima Jha
 
 ## 🏆 SIH 2025
 
