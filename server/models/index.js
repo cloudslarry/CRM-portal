@@ -17,6 +17,8 @@ const Room = require('./Room');
 const Student = require('./Student');
 const Subject = require('./Subject');
 const Book = require('./Book');
+const Form = require('./Form');
+const FormSubmission = require('./FormSubmission');
 
 // Export all models
 module.exports = {
@@ -34,6 +36,8 @@ module.exports = {
   Room,
   Student,
   Subject,
-  Book
+  Book,
+  Form,
+  FormSubmission
 };
 

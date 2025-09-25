@@ -35,7 +35,9 @@ import {
   Room as RoomIcon,
   Payment as PaymentIcon,
   Notifications as NotificationsIcon,
-  Assessment as AssessmentIcon
+  Assessment as AssessmentIcon,
+  Assignment as FormBuilderIcon,
+  Analytics as AnalyticsIcon
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -54,7 +56,8 @@ const AdminSidebar = ({ open, onClose, isMobile, width = 280 }) => {
     faculty: false,
     subjects: false,
     hostels: false,
-    applicants: false
+    applicants: false,
+    forms: false
   });
 
   const handleLogout = () => {
@@ -195,6 +198,31 @@ const AdminSidebar = ({ open, onClose, isMobile, width = 280 }) => {
           icon: <PaymentIcon />,
           path: '/admin/fees/college',
           color: 'info'
+        }
+      ]
+    },
+    {
+      label: 'Form Builder',
+      icon: <FormBuilderIcon />,
+      color: 'success',
+      children: [
+        {
+          label: 'All Forms',
+          icon: <FormBuilderIcon />,
+          path: '/admin/forms',
+          color: 'success'
+        },
+        {
+          label: 'Create Form',
+          icon: <LibraryAddIcon />,
+          path: '/admin/forms/create',
+          color: 'success'
+        },
+        {
+          label: 'Form Analytics',
+          icon: <AnalyticsIcon />,
+          path: '/admin/forms/analytics',
+          color: 'success'
         }
       ]
     },

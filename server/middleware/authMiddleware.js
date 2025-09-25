@@ -7,8 +7,9 @@ const Faculty = require("../models/Faculty");
 // Verify JWT token
 const verifyToken = async (req, res, next) => {
   try {
-    const authHeader = req.header("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
+    const authHeader = req.header("Authorization") || req.header("authorization") || req.header("x-auth-token") || req.header("x-access-token");
+    let token = authHeader || null;
+    if (token && token.startsWith('Bearer ')) token = token.substring(7);
     
     // DEBUG: Log token verification for troubleshooting
     console.log('Token verification:', {

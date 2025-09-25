@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Typography, useTheme, useMediaQuery, Badge } from '@mui/material'
-import { Dashboard as DashboardIcon, LibraryBooks as SubjectsIcon, LibraryBooks as LibraryIcon, Assessment as PerformanceIcon, Group as AttendanceIcon, Search as SearchIcon, Chat as ChatIcon, Message as MessageIcon, ExitToApp as ExitToAppIcon, Settings as SettingsIcon, Person as PersonIcon, Home as HomeIcon } from '@mui/icons-material'
+import { Dashboard as DashboardIcon, LibraryBooks as SubjectsIcon, LibraryBooks as LibraryIcon, Assessment as PerformanceIcon, Group as AttendanceIcon, Search as SearchIcon, Chat as ChatIcon, Message as MessageIcon, ExitToApp as ExitToAppIcon, Settings as SettingsIcon, Person as PersonIcon, Home as HomeIcon, Event as EventIcon, Payment as PaymentIcon } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { studentLogout } from '../redux/actions/studentAction'
@@ -55,8 +55,9 @@ const StudentSidebar = ({ open, onClose, width = 280 }) => {
     { label: 'Performance', icon: <PerformanceIcon/>, path: '/student/performance', color: 'success' },
     { label: 'Attendance', icon: <AttendanceIcon/>, path: '/student/attendance', color: 'warning' },
     { label: 'My Hostel', icon: <HomeIcon/>, path: '/student/hostel', color: 'info' },
-    { label: 'College Fees', icon: <HomeIcon/>, path: '/student/college/fees', color: 'info' },
+    { label: 'College Fees', icon: <PaymentIcon/>, path: '/student/college/fees', color: 'info' },
     { label: 'Hostel Fees', icon: <HomeIcon/>, path: '/student/hostel/fees', color: 'info' },
+    { label: 'Event registration', icon: <EventIcon/>, path: '/student/events', color: 'success' },
     { label: 'Search', icon: <SearchIcon/>, path: '/student/search', color: 'secondary' },
     { label: 'Start Chat', icon: <MessageIcon/>, path: '/student/chat', color: 'success', hasNotification: true },
     { label: 'Settings', icon: <SettingsIcon/>, path: '/student/settings', color: 'secondary' },

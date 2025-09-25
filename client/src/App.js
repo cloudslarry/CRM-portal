@@ -87,6 +87,16 @@ import {
   CollegeInfo,
   AdminApplicants,
   AdminAddApplicant,
+  // Form Builder
+  AdminFormBuilder,
+  AdminFormCreate,
+  AdminFormAnalytics,
+  FacultyFormBuilder,
+  FacultyFormCreate,
+  FacultyFormAnalytics,
+  FacultyFormView,
+  PublicFormView,
+  StudentEvents,
 } from "./pages";
 
 //Handle JWT Token with validation
@@ -286,6 +296,7 @@ function App() {
           />
           <Route exact path="/student/library" element={<StudentLibrary />} />
           <Route exact path="/student/search" element={<StudentSearch />} />
+          <Route exact path="/student/events" element={<StudentEvents />} />
           <Route exact path="/student/chatList" element={<StudentChats />} />
           <Route exact path="/student/chat" element={<Chat />} />
           <Route
@@ -335,6 +346,20 @@ function App() {
           <Route exact path="/applicant/status" element={<ApplicantStatusPage />} />
           <Route exact path="/applicant/courses" element={<ApplicantCourses />} />
           <Route exact path="/applicant/college-info" element={<ApplicantCollegeInfo />} />
+          
+          {/* Form Builder Routes */}
+          <Route exact path="/admin/forms" element={<AdminFormBuilder />} />
+          <Route exact path="/admin/forms/create" element={<AdminFormCreate />} />
+          <Route exact path="/admin/forms/edit/:id" element={<AdminFormCreate />} />
+          <Route exact path="/admin/forms/analytics/:id" element={<AdminFormAnalytics />} />
+          <Route exact path="/faculty/forms" element={<FacultyFormBuilder />} />
+          <Route exact path="/faculty/forms/create" element={<FacultyFormCreate />} />
+          <Route exact path="/faculty/forms/edit/:id" element={<FacultyFormCreate />} />
+          <Route exact path="/faculty/forms/view/:id" element={<FacultyFormView />} />
+          <Route exact path="/faculty/forms/analytics/:id" element={<FacultyFormAnalytics />} />
+          
+          {/* Public Form Routes */}
+          <Route exact path="/forms/:id" element={<PublicFormView />} />
         </Routes>
         {/* Removed fallback 404 route */}
       </Router>

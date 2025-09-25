@@ -238,6 +238,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
 const bookRoutes = require('./routes/bookRoutes');
 const applicantRoutes = require('./routes/applicantRoutes');
+const formRoutes = require('./routes/formRoutes');
 console.log("✅ auth.js file has been loaded successfully!");
 console.log("✅ chatRoutes.js file has been loaded successfully!");
 console.log("✅ departmentRoutes.js file has been loaded successfully!");
@@ -264,6 +265,13 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/department', departmentRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/applicant', applicantRoutes);
+app.use('/api/forms', formRoutes);
+
+// Health check route
+app.get("/api/health", (req, res) => {
+  res.json({ message: "Server is running!" });
+});
+
 console.log("✅ bookRoutes mounted at /api/books");
 // REMOVED: The broad alias `app.use('/api/student', studentReceiptRoutes)`
 // was removed to prevent conflicts with other student routes.

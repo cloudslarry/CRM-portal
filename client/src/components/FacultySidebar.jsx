@@ -19,7 +19,10 @@ import {
   ExitToApp as ExitToAppIcon,
   Settings as SettingsIcon,
   Person as PersonIcon,
-  LibraryBooks as LibraryBooksIcon
+  LibraryBooks as LibraryBooksIcon,
+  Assignment as FormBuilderIcon,
+  Analytics as AnalyticsIcon,
+  Add as AddIcon
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -38,6 +41,7 @@ const FacultySidebar = ({ open, onClose, width = 280 }) => {
     { label: 'Attendance', icon: <AttendanceIcon />, path: '/faculty/attendance', color: 'warning' },
     { label: 'Upload Marks', icon: <UploadIcon />, path: '/faculty/marks', color: 'success' },
     { label: 'Library Management', icon: <LibraryBooksIcon />, path: '/faculty/library', color: 'info' },
+    { label: 'Form Builder', icon: <FormBuilderIcon />, path: '/faculty/forms', color: 'success' },
     { label: 'Settings', icon: <SettingsIcon />, path: '/faculty/settings', color: 'secondary' }
   ]
 

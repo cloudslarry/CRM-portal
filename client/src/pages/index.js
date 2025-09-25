@@ -79,3 +79,14 @@ export { default as AdminApplicants } from "./Admin/AdminApplicants";
 export { default as AdminAddApplicant } from "./Admin/AdminAddApplicant";
 // Note: Using AdminApplicants (admissions applications list)
 export { default as AdminApplicantDetails } from "./Admin/AdminApplicantDetails";
+
+// Form Builder Pages
+export { default as AdminFormBuilder } from "./Admin/AdminFormBuilder";
+export { default as AdminFormCreate } from "./Admin/AdminFormCreate";
+export { default as AdminFormAnalytics } from "./Admin/AdminFormAnalytics";
+export { default as FacultyFormBuilder } from "./Faculty/FacultyFormBuilder";
+export { default as FacultyFormCreate } from "./Faculty/FacultyFormCreate";
+export { default as FacultyFormAnalytics } from "./Faculty/FacultyFormAnalytics";
+export { default as FacultyFormView } from "./Faculty/FacultyFormView";
+export { default as PublicFormView } from "./PublicFormView";
+export { default as StudentEvents } from "./Student/StudentEvents";

@@ -15,7 +15,7 @@ const FacultyAttendance = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    const department = faculty.faculty.faculty.department;
+    const department = faculty.faculty?.faculty?.department || faculty.faculty?.department || '';
     const [year, setYear] = useState("")
     const [section, setSection] = useState("")
     const [date, setDate] = useState(() => {
@@ -42,7 +42,8 @@ const FacultyAttendance = () => {
     ]
 
     const rows = [];
-    faculty.fetchedStudents.forEach((item,index) => {
+    const fetched = Array.isArray(faculty.fetchedStudents) ? faculty.fetchedStudents : [];
+    fetched.forEach((item,index) => {
         rows.push({
             id:index + 1,
             _id:item._id,
@@ -70,6 +71,10 @@ const FacultyAttendance = () => {
 
     const getStudents = (e) => {
         e.preventDefault();
+        if (!department) {
+          toast.error('Department not found on your profile');
+          return;
+        }
         if (!year || !section) {
           toast.error('Please select year and section');
           return;

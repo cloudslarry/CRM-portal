@@ -16,6 +16,32 @@ api.interceptors.request.use(
     // The URL will now be relative, e.g., "/api/student/login"
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
     
+    // Attach Authorization automatically if not already present
+    if (!config.headers.Authorization) {
+      try {
+        const rawAdmin = localStorage.getItem('adminToken');
+        const rawFaculty = localStorage.getItem('facultyToken');
+        const rawStudent = localStorage.getItem('studentToken');
+
+        // Prefer role token based on route namespace
+        let raw = null;
+        if (typeof window !== 'undefined' && window.location && window.location.pathname) {
+          const p = window.location.pathname;
+          if (p.startsWith('/admin')) raw = rawAdmin || rawFaculty || rawStudent;
+          else if (p.startsWith('/faculty')) raw = rawFaculty || rawAdmin || rawStudent;
+          else if (p.startsWith('/student')) raw = rawStudent || rawFaculty || rawAdmin;
+        }
+        // Fallback if path not matched
+        if (!raw) raw = rawFaculty || rawAdmin || rawStudent;
+        if (raw) {
+          const clean = raw.startsWith('Bearer ') ? raw.substring(7) : raw;
+          if (clean) {
+            config.headers.Authorization = `Bearer ${clean}`;
+          }
+        }
+      } catch (_) {}
+    }
+
     // DEBUG: Log authorization header for troubleshooting
     if (config.headers.Authorization) {
       console.log('Authorization header:', config.headers.Authorization.substring(0, 20) + '...');
